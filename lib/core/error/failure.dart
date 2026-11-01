@@ -1,29 +1,33 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 
+/// Base class for all app-level errors shown to the user.
 abstract class Failure extends Equatable {
   const Failure(this.message);
+
   final String message;
 
   @override
   List<Object?> get props => [message];
 
-  /// Dio errors ko app-level Failure mein convert karta hai.
+  /// Converts a [DioException] into an app-level [Failure].
   static Failure fromDio(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        return const NetworkFailure('Server se connect nahi ho paa raha.');
+        return const NetworkFailure(
+          'Unable to reach the server. Please check your connection.',
+        );
       case DioExceptionType.badResponse:
         final data = e.response?.data;
-        final msg = (data is Map && data['message'] is String)
+        final message = (data is Map && data['message'] is String)
             ? data['message'] as String
             : 'Server error (${e.response?.statusCode}).';
-        return ServerFailure(msg);
+        return ServerFailure(message);
       default:
-        return const UnknownFailure('Kuch galat ho gaya.');
+        return const UnknownFailure('Something went wrong. Please try again.');
     }
   }
 }
