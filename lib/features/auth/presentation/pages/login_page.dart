@@ -1,92 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/brand_logo.dart';
 import '../cubit/login_cubit.dart';
-import '../cubit/login_state.dart';
+import '../widgets/brand_panel.dart';
+import '../widgets/login_form.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
+
+  /// Minimum width at which the brand panel is shown beside the form.
+  static const double _wideBreakpoint = 900;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => LoginCubit(),
-      child: const _LoginView(),
+      child: Scaffold(
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= _wideBreakpoint;
+            return Row(
+              children: [
+                if (isWide) const Expanded(flex: 5, child: BrandPanel()),
+                Expanded(flex: 4, child: _FormSide(showLogo: !isWide)),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
-class _LoginView extends StatelessWidget {
-  const _LoginView();
+class _FormSide extends StatelessWidget {
+  const _FormSide({required this.showLogo});
+
+  final bool showLogo;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: Center(
+    return SafeArea(
+      child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(AppConstants.appName,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text('Sign in to continue',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium),
-                    const SizedBox(height: 24),
-                    const TextField(
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    BlocBuilder<LoginCubit, LoginState>(
-                      builder: (context, state) {
-                        return TextField(
-                          obscureText: state.obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(state.obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined),
-                              onPressed: () => context
-                                  .read<LoginCubit>()
-                                  .togglePasswordVisibility(),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Login backend Phase 2 mein connect hoga.'),
-                          ),
-                        );
-                      },
-                      child: const Text('Sign in'),
-                    ),
-                  ],
-                ),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (showLogo) ...[
+                  const Align(child: BrandLogo()),
+                  const SizedBox(height: 40),
+                ],
+                const LoginForm(),
+              ],
             ),
           ),
         ),
