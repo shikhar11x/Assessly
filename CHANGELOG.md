@@ -12,3 +12,7 @@
   server-side timer with grace period, attendance eligibility, duplicate-attempt
   prevention (DB constraint + concurrency test), answer saving, tab-switch
   counter, MCQ auto-grading, result breakdown. Coding grading follows in 2e.
+- Phase 2d: teacher APIs - assessment CRUD with publish/unpublish, question bank
+  (MCQ and coding with test cases), CSV student import with per-row error report,
+  assignment (explicit or all attendance-eligible), submissions list, result
+  analytics. Teachers are isolated from each other; questions lock once attempts exist.
