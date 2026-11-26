@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _roll = TextEditingController();
   bool _register = false;
   bool _busy = false;
+  bool _hidePassword = true;
   String? _error;
 
   @override
@@ -26,6 +27,22 @@ class _LoginPageState extends State<LoginPage> {
     _password.dispose();
     _roll.dispose();
     super.dispose();
+  }
+
+  InputDecoration _dec(String label, IconData icon, {Widget? suffix}) => InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        suffixIcon: suffix,
+        filled: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      );
+
+  void _fillDemo(String email) {
+    setState(() {
+      _email.text = email;
+      _password.text = 'Demo@12345';
+      _error = null;
+    });
   }
 
   Future<void> _submit() async {
@@ -50,79 +67,150 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _form,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text('Assessly', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-                      const SizedBox(height: 4),
-                      Text(_register ? 'Create a student account' : 'Sign in to continue',
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 20),
-                      if (_register) ...[
-                        TextFormField(
-                          key: const Key('name'),
-                          controller: _name,
-                          decoration: const InputDecoration(labelText: 'Full name'),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [scheme.primaryContainer, scheme.surface, scheme.secondaryContainer],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Form(
+                    key: _form,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: scheme.primary,
+                          child: Icon(Icons.school_rounded, size: 32, color: scheme.onPrimary),
                         ),
+                        const SizedBox(height: 14),
+                        Text('Assessly',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(_register ? 'Create a student account' : 'Sign in to continue',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: scheme.onSurfaceVariant)),
+                        const SizedBox(height: 24),
+                        if (_register) ...[
+                          TextFormField(
+                            key: const Key('name'),
+                            controller: _name,
+                            decoration: _dec('Full name', Icons.person_outline),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            key: const Key('roll'),
+                            controller: _roll,
+                            decoration: _dec('Roll number (optional)', Icons.badge_outlined),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         TextFormField(
-                          key: const Key('roll'),
-                          controller: _roll,
-                          decoration: const InputDecoration(labelText: 'Roll number (optional)'),
+                          key: const Key('email'),
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: _dec('Email', Icons.email_outlined),
+                          validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                         ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          key: const Key('password'),
+                          controller: _password,
+                          obscureText: _hidePassword,
+                          decoration: _dec(
+                            'Password',
+                            Icons.lock_outline,
+                            suffix: IconButton(
+                              icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Enter your password';
+                            if (_register && v.length < 8) return 'Use at least 8 characters';
+                            return null;
+                          },
+                          onFieldSubmitted: (_) => _submit(),
+                        ),
+                        if (_error != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 14),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: scheme.errorContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.error_outline, color: scheme.onErrorContainer),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_error!, style: TextStyle(color: scheme.onErrorContainer))),
+                            ]),
+                          ),
+                        const SizedBox(height: 22),
+                        FilledButton(
+                          key: const Key('submit'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: _busy ? null : _submit,
+                          child: _busy
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : Text(_register ? 'Register' : 'Sign in'),
+                        ),
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() {
+                                    _register = !_register;
+                                    _error = null;
+                                  }),
+                          child: Text(_register ? 'I already have an account' : 'New student? Register'),
+                        ),
+                        if (!_register) ...[
+                          const Divider(height: 28),
+                          Text('Demo accounts', textAlign: TextAlign.center,
+                              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            children: [
+                              ActionChip(
+                                avatar: const Icon(Icons.co_present_outlined, size: 18),
+                                label: const Text('Teacher'),
+                                onPressed: () => _fillDemo('teacher@assessly.local'),
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.person_outline, size: 18),
+                                label: const Text('Student'),
+                                onPressed: () => _fillDemo('asha@assessly.local'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                      TextFormField(
-                        key: const Key('email'),
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
-                      ),
-                      TextFormField(
-                        key: const Key('password'),
-                        controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Password'),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Enter your password';
-                          if (_register && v.length < 8) return 'Use at least 8 characters';
-                          return null;
-                        },
-                        onFieldSubmitted: (_) => _submit(),
-                      ),
-                      if (_error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                        ),
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        key: const Key('submit'),
-                        onPressed: _busy ? null : _submit,
-                        child: _busy
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_register ? 'Register' : 'Sign in'),
-                      ),
-                      TextButton(
-                        onPressed: _busy ? null : () => setState(() {
-                          _register = !_register;
-                          _error = null;
-                        }),
-                        child: Text(_register ? 'I already have an account' : 'New student? Register'),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
