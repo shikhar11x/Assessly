@@ -1,6 +1,6 @@
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 /** Central configuration. Fails fast if a required secret is missing. */
 const config = {
