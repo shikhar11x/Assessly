@@ -22,3 +22,5 @@
   partial credit), run rate limiting, sandbox attack-test script with recorded
   evidence. Known dev limitation: outbound network is not blocked in local Docker;
   a NetworkPolicy covers this in Phase 6.
+- Phase 2f-1: Flutter skeleton - API client, login/register, session restore,
+  role-based routing, widget tests.
