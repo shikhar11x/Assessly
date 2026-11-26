@@ -16,3 +16,8 @@
   (MCQ and coding with test cases), CSV student import with per-row error report,
   assignment (explicit or all attendance-eligible), submissions list, result
   analytics. Teachers are isolated from each other; questions lock once attempts exist.
+- Phase 2e: coding assessment - isolated execution service (own container, unprivileged
+  uid, timeout/memory/process/output limits, read-only filesystem, token auth),
+  Run (sample case) and Submit (all cases, hidden cases masked, partial credit),
+  run rate limiting, sandbox verification script and evidence. Known dev limitation:
+  outbound network is not blocked in local Docker; a NetworkPolicy covers this in Phase 6.
