@@ -22,5 +22,35 @@ services:
         limits:
           memory: 256M
 
+  # Isolated code execution service: student code runs here, never in the backend.
+  executor:
+    build:
+      context: ../application/execution-service
+    container_name: assessly-executor
+    restart: unless-stopped
+    environment:
+      EXECUTOR_TOKEN: ${EXECUTOR_TOKEN:?set EXECUTOR_TOKEN in docker/.env}
+    ports:
+      - "127.0.0.1:4000:4000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=16m,mode=0755
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - KILL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
 volumes:
   assessly_pgdata:
