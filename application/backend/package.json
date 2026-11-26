@@ -7,11 +7,12 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --testPathIgnorePatterns integration",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "migrate": "node src/migrate.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "test:integration": "jest --runInBand --testPathPatterns integration"
   },
   "keywords": [],
   "type": "commonjs",
@@ -31,5 +32,11 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "./tests/setup.js"
+    ]
   }
 }
