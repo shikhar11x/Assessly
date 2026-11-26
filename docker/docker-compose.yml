@@ -27,6 +27,7 @@ services:
     build:
       context: ../application/execution-service
     container_name: assessly-executor
+    init: true
     restart: unless-stopped
     environment:
       EXECUTOR_TOKEN: ${EXECUTOR_TOKEN:?set EXECUTOR_TOKEN in docker/.env}
