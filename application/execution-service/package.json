@@ -1,0 +1,9 @@
+{
+  "name": "assessly-execution-service",
+  "version": "1.0.0",
+  "description": "Isolated code execution service for Assessly",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": { "start": "node src/server.js" },
+  "engines": { "node": ">=20" }
+}
