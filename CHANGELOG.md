@@ -21,3 +21,9 @@
   Run (sample case) and Submit (all cases, hidden cases masked, partial credit),
   run rate limiting, sandbox verification script and evidence. Known dev limitation:
   outbound network is not blocked in local Docker; a NetworkPolicy covers this in Phase 6.
+- Phase 2e: coding assessment - isolated execution service (own container, unprivileged
+  uid, timeout/memory/process/output limits, read-only filesystem, token auth, init
+  process to reap children), Run (sample case) and Submit (all cases, hidden cases
+  masked, partial credit), run rate limiting, sandbox attack-test script with recorded
+  evidence. Known dev limitation: outbound network is not blocked in local Docker;
+  a NetworkPolicy covers this in Phase 6.
