@@ -6,6 +6,7 @@ const helmet = require('helmet');
 
 const pkg = require('../package.json');
 const authRoutes = require('./auth_routes');
+const studentRoutes = require('./student_routes');
 
 /**
  * Builds and returns the Express application.
@@ -19,6 +20,7 @@ function createApp() {
   app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/auth', authRoutes);
+app.use('/api/student', studentRoutes);
 
   // Liveness endpoint: "is the process alive?" (used later by Kubernetes probes)
   app.get('/health', (req, res) => {
