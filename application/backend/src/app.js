@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const pkg = require('../package.json');
 const authRoutes = require('./auth_routes');
 const studentRoutes = require('./student_routes');
+const codingRoutes = require('./coding_routes');
 const teacherRoutes = require('./teacher_routes');
 
 /**
@@ -22,6 +23,7 @@ function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/student', codingRoutes);
 app.use('/api/teacher', teacherRoutes);
 
   // Liveness endpoint: "is the process alive?" (used later by Kubernetes probes)

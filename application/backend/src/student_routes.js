@@ -61,7 +61,11 @@ async function finalizeAttempt(client, attemptId, status) {
   let max = 0;
   for (const q of questions) {
     max += q.marks;
-    if (q.type !== 'mcq') continue;
+    if (q.type !== 'mcq') {
+      const ca = byQuestion.get(q.id);
+      if (ca) score += Number(ca.marks_awarded);
+      continue;
+    }
     const ans = byQuestion.get(q.id);
     const g = svc.gradeMcq(q, ans ? ans.selected_option : null);
     score += g.marks;
@@ -285,10 +289,11 @@ router.get('/attempts/:id/result', handle(async (req, res) => {
         selectedOption: a ? a.selected_option : null,
         isCorrect: a ? a.is_correct : null,
         marksAwarded: a ? Number(a.marks_awarded) : 0,
-        status: q.type === 'coding' ? 'pending coding evaluation' : 'graded',
+        status: q.type === 'coding' ? (a && a.is_correct !== null ? 'graded' : 'no code submitted') : 'graded',
       };
     }),
   });
 }));
 
 module.exports = router;
+module.exports.helpers = { HttpError, handle, getOwnAttempt, expireIfNeeded };
