@@ -19,7 +19,7 @@ function createApp() {
 
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+  app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()) : '*' }));
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
