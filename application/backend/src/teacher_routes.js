@@ -7,6 +7,7 @@ const { pool, query } = require('./db');
 const { authenticate, requireRole } = require('./middleware_auth');
 const { parseStudentCsv } = require('./csv_import');
 const { summarizeScores } = require('./analytics');
+const { toCsv } = require('./csv_export');
 
 const router = express.Router();
 router.use(authenticate, requireRole('teacher'));
@@ -347,6 +348,76 @@ router.get('/assessments/:id/analytics', handle(async (req, res) => {
       accuracyPct: q.answered ? Math.round((q.correct / q.answered) * 10000) / 100 : null,
     })),
   });
+}));
+
+// PUT /api/teacher/students/:id/attendance - body: { attendancePct }
+router.put('/students/:id/attendance', handle(async (req, res) => {
+  const { attendancePct } = parseBody(z.object({ attendancePct: z.number().min(0).max(100) }), req.body);
+  const r = await query(
+    "UPDATE users SET attendance_pct = $1 WHERE id = $2 AND role = 'student' RETURNING id", [attendancePct, req.params.id]);
+  if (!r.rows[0]) throw new HttpError(404, 'Student not found');
+  res.json({ updated: true });
+}));
+
+// DELETE /api/teacher/assessments/:id/assign/:studentId - only before the student has attempted
+router.delete('/assessments/:id/assign/:studentId', handle(async (req, res) => {
+  await ownAssessment(req.params.id, req.user.id);
+  const t = await query('SELECT 1 FROM attempts WHERE assessment_id = $1 AND student_id = $2', [req.params.id, req.params.studentId]);
+  if (t.rows[0]) throw new HttpError(409, 'Cannot unassign: the student has already attempted this assessment');
+  const r = await query('DELETE FROM assignments WHERE assessment_id = $1 AND student_id = $2', [req.params.id, req.params.studentId]);
+  if (!r.rowCount) throw new HttpError(404, 'Assignment not found');
+  res.json({ removed: true });
+}));
+
+// GET /api/teacher/assessments/:id/submissions/:attemptId - one student's answers and code
+router.get('/assessments/:id/submissions/:attemptId', handle(async (req, res) => {
+  await ownAssessment(req.params.id, req.user.id);
+  const t = (await query(
+    `SELECT t.*, u.full_name, u.email, u.roll_number FROM attempts t JOIN users u ON u.id = t.student_id
+     WHERE t.id = $1 AND t.assessment_id = $2`, [req.params.attemptId, req.params.id])).rows[0];
+  if (!t) throw new HttpError(404, 'Attempt not found');
+  const qs = (await query(
+    'SELECT id, type, prompt, options, correct_option, marks FROM questions WHERE id = ANY($1::uuid[])', [t.question_ids])).rows;
+  const answers = (await query('SELECT * FROM answers WHERE attempt_id = $1', [t.id])).rows;
+  const byQ = new Map(qs.map((q) => [q.id, q]));
+  const byA = new Map(answers.map((a) => [a.question_id, a]));
+  res.json({
+    student: { fullName: t.full_name, email: t.email, rollNumber: t.roll_number },
+    attempt: {
+      id: t.id, status: t.status, startedAt: t.started_at, submittedAt: t.submitted_at,
+      score: t.score === null ? null : Number(t.score), maxScore: t.max_score === null ? null : Number(t.max_score),
+      tabSwitches: t.tab_switches,
+    },
+    breakdown: t.question_ids.map((id) => {
+      const q = byQ.get(id);
+      const a = byA.get(id);
+      return {
+        questionId: id, type: q.type, prompt: q.prompt, marks: q.marks, options: q.options,
+        correctOption: q.type === 'mcq' ? q.correct_option : null,
+        selectedOption: a ? a.selected_option : null, code: a ? a.code : null,
+        isCorrect: a ? a.is_correct : null, marksAwarded: a ? Number(a.marks_awarded) : 0,
+        markedForReview: a ? a.marked_for_review : false,
+      };
+    }),
+  });
+}));
+
+// GET /api/teacher/assessments/:id/results-export - { filename, csv } (the UI copies/saves it)
+router.get('/assessments/:id/results-export', handle(async (req, res) => {
+  const a = await ownAssessment(req.params.id, req.user.id);
+  const r = await query(
+    `SELECT u.roll_number, u.full_name, u.email, t.status, t.score, t.max_score, t.tab_switches, t.submitted_at
+     FROM attempts t JOIN users u ON u.id = t.student_id
+     WHERE t.assessment_id = $1 AND t.status <> 'in_progress' ORDER BY u.roll_number NULLS LAST, u.email`, [a.id]);
+  const rows = r.rows.map((x) => {
+    const max = Number(x.max_score) || 0;
+    const pct = max > 0 ? Math.round((Number(x.score) / max) * 10000) / 100 : 0;
+    return [x.roll_number, x.full_name, x.email, x.status, x.score, x.max_score, pct,
+      x.tab_switches, x.submitted_at ? new Date(x.submitted_at).toISOString() : ''];
+  });
+  const csv = toCsv(
+    ['roll_number', 'full_name', 'email', 'status', 'score', 'max_score', 'percentage', 'tab_switches', 'submitted_at'], rows);
+  res.json({ filename: `results-${a.title.replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}.csv`, csv });
 }));
 
 module.exports = router;
