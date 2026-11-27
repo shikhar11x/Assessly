@@ -13,4 +13,15 @@ extension ExamApi on StudentApi {
 
   Future<Map<String, dynamic>> tabSwitch(String attemptId) =>
       api.post('/api/student/attempts/$attemptId/tab-switch');
+
+  /// Runs the code against the sample test case only.
+  Future<Map<String, dynamic>> runCode(String attemptId, String questionId, String code) =>
+      api.post('/api/student/attempts/$attemptId/questions/$questionId/run', {'code': code});
+
+  /// Runs the code against every test case and stores the marks.
+  Future<Map<String, dynamic>> submitCode(String attemptId, String questionId, String code) =>
+      api.post('/api/student/attempts/$attemptId/questions/$questionId/submit-code', {'code': code});
+
+  Future<Map<String, dynamic>> result(String attemptId) =>
+      api.get('/api/student/attempts/$attemptId/result');
 }
