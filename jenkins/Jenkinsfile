@@ -1,0 +1,174 @@
+// Assessly CI pipeline (Phase 4). Security scan stages are added in Phase 5.
+pipeline {
+  agent any
+
+  options {
+    skipDefaultCheckout(true)
+    timestamps()
+    timeout(time: 60, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+  }
+
+  // Fires when GitHub sends a push webhook to /github-webhook/ (registered after the first build runs).
+  triggers { githubPush() }
+
+  parameters {
+    booleanParam(name: 'PUSH_IMAGES', defaultValue: false,
+                 description: 'Push images to Docker Hub (needs the "dockerhub-credentials" Jenkins credential)')
+    string(name: 'DOCKERHUB_NAMESPACE', defaultValue: 'shikhar11x', description: 'Docker Hub user or organisation')
+  }
+
+  environment {
+    CI_NET = "assessly-ci-${BUILD_NUMBER}"
+    CI_PG  = "assessly-ci-pg-${BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Git Checkout') {
+      steps {
+        script {
+          def scm = checkout scm
+          env.GIT_SHA = scm.GIT_COMMIT
+          env.IMAGE_TAG = scm.GIT_COMMIT.take(7)   // immutable tag, never "latest"
+          // Throwaway values for this build only; they are not Jenkins secrets and not reused anywhere.
+          def rnd = { sh(script: 'head -c 18 /dev/urandom | od -An -tx1 | tr -d " \\n"', returnStdout: true).trim() }
+          env.CI_DB_PASSWORD = rnd()
+          env.JWT_SECRET = rnd()
+          env.DATABASE_URL = "postgres://assessly:${env.CI_DB_PASSWORD}@${env.CI_PG}:5432/assessly"
+        }
+        sh '''
+          rm -rf reports/unit reports/integration
+          mkdir -p reports/unit reports/integration
+          git log -1 --oneline
+        '''
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps { dir('application/backend') { sh 'npm ci' } }
+    }
+
+    stage('Backend Unit Tests') {
+      steps {
+        dir('application/backend') {
+          withEnv(['JEST_JUNIT_OUTPUT_DIR=../../reports/unit', 'JEST_JUNIT_OUTPUT_NAME=junit.xml']) {
+            sh 'npm run test:ci'
+          }
+        }
+      }
+      post { always { junit allowEmptyResults: true, testResults: 'reports/unit/junit.xml' } }
+    }
+
+    stage('Integration Tests') {
+      steps {
+        sh '''
+          docker network create "$CI_NET"
+          docker run -d --name "$CI_PG" --network "$CI_NET" \
+            -e POSTGRES_DB=assessly -e POSTGRES_USER=assessly -e POSTGRES_PASSWORD="$CI_DB_PASSWORD" \
+            --tmpfs /var/lib/postgresql/data postgres:16-alpine
+          # let this Jenkins container reach the throwaway database by name
+          docker network connect "$CI_NET" "$(hostname)"
+          for i in $(seq 1 30); do
+            docker exec "$CI_PG" pg_isready -h 127.0.0.1 -U assessly -d assessly && break
+            sleep 2
+          done
+          docker exec "$CI_PG" pg_isready -h 127.0.0.1 -U assessly -d assessly
+        '''
+        dir('application/backend') {
+          withEnv(['JEST_JUNIT_OUTPUT_DIR=../../reports/integration', 'JEST_JUNIT_OUTPUT_NAME=junit.xml']) {
+            sh 'node src/migrate.js && node src/seed.js && npm run test:integration:ci'
+          }
+        }
+      }
+      post { always { junit allowEmptyResults: true, testResults: 'reports/integration/junit.xml' } }
+    }
+
+    stage('Frontend Analyze and Tests') {
+      steps {
+        // Runs flutter analyze + flutter test inside the build image (fails the build on any issue).
+        sh 'docker build --progress=plain --target test -f docker/frontend.Dockerfile .'
+      }
+    }
+
+    stage('Docker Image Build') {
+      steps {
+        sh '''
+          docker build -f docker/backend.Dockerfile  --label org.opencontainers.image.revision="$GIT_SHA" -t "assessly-backend:$IMAGE_TAG" .
+          docker build -f docker/frontend.Dockerfile --label org.opencontainers.image.revision="$GIT_SHA" -t "assessly-frontend:$IMAGE_TAG" .
+          docker build --label org.opencontainers.image.revision="$GIT_SHA" -t "assessly-executor:$IMAGE_TAG" application/execution-service
+          docker images --filter "reference=assessly-*:$IMAGE_TAG"
+        '''
+      }
+    }
+
+    stage('Container Smoke Test') {
+      steps {
+        // Starts the freshly built images and waits for their own HEALTHCHECK to report healthy.
+        sh '''
+          wait_healthy() {
+            for i in $(seq 1 40); do
+              s=$(docker inspect -f '{{.State.Health.Status}}' "$1")
+              [ "$s" = "healthy" ] && return 0
+              sleep 3
+            done
+            echo "Container $1 did not become healthy:"; docker logs "$1"; return 1
+          }
+          docker run -d --name "ci-backend-$BUILD_NUMBER" --network "$CI_NET" --network-alias backend \
+            -e PORT=3000 -e DATABASE_URL -e JWT_SECRET "assessly-backend:$IMAGE_TAG"
+          wait_healthy "ci-backend-$BUILD_NUMBER"
+          docker run -d --name "ci-frontend-$BUILD_NUMBER" --network "$CI_NET" "assessly-frontend:$IMAGE_TAG"
+          wait_healthy "ci-frontend-$BUILD_NUMBER"
+          echo "Smoke test passed: backend and frontend images start and report healthy."
+        '''
+      }
+    }
+
+    stage('Docker Hub Push') {
+      when { expression { params.PUSH_IMAGES } }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                          usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+          sh '''
+            echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+            for svc in backend frontend executor; do
+              docker tag "assessly-$svc:$IMAGE_TAG" "$DOCKERHUB_NAMESPACE/assessly-$svc:$IMAGE_TAG"
+              docker push "$DOCKERHUB_NAMESPACE/assessly-$svc:$IMAGE_TAG"
+            done
+            docker logout
+          '''
+        }
+      }
+    }
+
+    stage('Pipeline Report') {
+      steps {
+        sh '''
+          {
+            echo "Assessly CI report"
+            echo "Build:      $BUILD_NUMBER"
+            echo "Commit:     $GIT_SHA"
+            echo "Image tag:  $IMAGE_TAG"
+            echo "Pushed:     ${PUSH_IMAGES}"
+            echo "Images:"
+            docker images --filter "reference=assessly-*:$IMAGE_TAG" --format "  {{.Repository}}:{{.Tag}}  {{.Size}}"
+          } > reports/pipeline-summary.txt
+          cat reports/pipeline-summary.txt
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      sh '''
+        docker rm -f "ci-frontend-$BUILD_NUMBER" "ci-backend-$BUILD_NUMBER" "$CI_PG" >/dev/null 2>&1 || true
+        docker network disconnect "$CI_NET" "$(hostname)" >/dev/null 2>&1 || true
+        docker network rm "$CI_NET" >/dev/null 2>&1 || true
+      '''
+      archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+    }
+    success { echo "Pipeline OK: commit ${env.IMAGE_TAG} tested and built." }
+    failure { echo 'Pipeline FAILED: open the first red stage above. Test reports are under Artifacts / Test Result.' }
+  }
+}
