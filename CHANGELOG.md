@@ -47,3 +47,5 @@
 
 - Phase 2g-2a: design system tokens (warm light / GitHub dark), BLoC introduced with ThemeCubit.
 
+- Phase 2g-2b: reusable widgets, responsive sidebar shell for faculty and student, login and exam on design tokens.
+
