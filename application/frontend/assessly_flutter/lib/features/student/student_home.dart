@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../auth/auth_state.dart';
 import 'exam_page.dart';
 import 'student_api.dart';
@@ -41,7 +42,10 @@ class _StudentHomeState extends State<StudentHome> {
                 'You get ${a.questionsPerAttempt} randomly chosen questions and only one attempt.'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-              FilledButton(key: const Key('confirm-start'), onPressed: () => Navigator.pop(c, true), child: const Text('Start now')),
+              FilledButton(
+                  key: const Key('confirm-start'),
+                  onPressed: () => Navigator.pop(c, true),
+                  child: const Text('Start now')),
             ],
           ),
         );
@@ -60,13 +64,14 @@ class _StudentHomeState extends State<StudentHome> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student dashboard'),
         actions: [
-          IconButton(tooltip: 'Refresh', onPressed: _reload, icon: const Icon(Icons.refresh)),
-          TextButton.icon(onPressed: auth.logout, icon: const Icon(Icons.logout), label: const Text('Sign out')),
+          const ThemeToggleButton(),
+          IconButton(tooltip: 'Refresh', onPressed: _reload, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(tooltip: 'Sign out', onPressed: auth.logout, icon: const Icon(Icons.logout_rounded)),
+          const SizedBox(width: 8),
         ],
       ),
       body: FutureBuilder<DashboardData>(
@@ -87,28 +92,24 @@ class _StudentHomeState extends State<StudentHome> {
           final data = snap.data!;
           return Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
+              constraints: const BoxConstraints(maxWidth: 820),
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  Text('Welcome, ${auth.user!.fullName}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  _Hero(name: auth.user!.fullName, attendance: data.attendancePct),
+                  const SizedBox(height: 28),
+                  Text('Your assessments',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  Card(
-                    color: scheme.primaryContainer,
-                    child: ListTile(
-                      leading: const Icon(Icons.event_available),
-                      title: const Text('Your attendance'),
-                      trailing: Text('${data.attendancePct.toStringAsFixed(0)}%',
-                          style: Theme.of(context).textTheme.titleLarge),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Your assessments', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
                   if (data.assessments.isEmpty)
-                    const Card(child: Padding(padding: EdgeInsets.all(24), child: Text('No assessments assigned yet.'))),
-                  for (final a in data.assessments) _AssessmentCard(item: a, attendance: data.attendancePct, onOpen: () => _open(a)),
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(child: Text('No assessments assigned yet.')),
+                      ),
+                    ),
+                  for (final a in data.assessments)
+                    _AssessmentCard(item: a, attendance: data.attendancePct, onOpen: () => _open(a)),
                 ],
               ),
             ),
@@ -119,52 +120,170 @@ class _StudentHomeState extends State<StudentHome> {
   }
 }
 
+class _Hero extends StatelessWidget {
+  final String name;
+  final double attendance;
+  const _Hero({required this.name, required this.attendance});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Theme.of(context).colorScheme;
+    final soft = s.onPrimary.withValues(alpha: 0.85);
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [s.primary, Color.lerp(s.primary, s.tertiary, 0.7)!],
+        ),
+        boxShadow: [
+          BoxShadow(color: s.primary.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Welcome, $name',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, color: s.onPrimary)),
+            const SizedBox(height: 6),
+            Text('Ready for your next assessment? Check your eligibility below.',
+                style: TextStyle(color: soft)),
+          ]),
+        ),
+        const SizedBox(width: 16),
+        Column(children: [
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: Stack(fit: StackFit.expand, children: [
+              CircularProgressIndicator(
+                value: (attendance / 100).clamp(0.0, 1.0).toDouble(),
+                strokeWidth: 7,
+                color: s.onPrimary,
+                backgroundColor: s.onPrimary.withValues(alpha: 0.25),
+              ),
+              Center(
+                child: Text('${attendance.toStringAsFixed(0)}%',
+                    style: TextStyle(color: s.onPrimary, fontWeight: FontWeight.bold)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 6),
+          Text('Attendance', style: TextStyle(color: soft, fontSize: 12)),
+        ]),
+      ]),
+    );
+  }
+}
+
 class _AssessmentCard extends StatelessWidget {
   final AssessmentItem item;
   final double attendance;
   final VoidCallback onOpen;
   const _AssessmentCard({required this.item, required this.attendance, required this.onOpen});
 
+  Widget _meta(BuildContext context, IconData icon, String text) {
+    final c = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 16, color: c),
+      const SizedBox(width: 4),
+      Text(text, style: TextStyle(color: c, fontSize: 13)),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final s = Theme.of(context).colorScheme;
     final a = item;
+    final locked = !a.eligible && !a.closed && !a.inProgress;
+
+    final String badge;
+    final Color bg;
+    final Color fg;
+    if (a.closed) {
+      badge = 'Finished';
+      bg = s.secondaryContainer;
+      fg = s.onSecondaryContainer;
+    } else if (a.inProgress) {
+      badge = 'In progress';
+      bg = s.tertiaryContainer;
+      fg = s.onTertiaryContainer;
+    } else if (locked) {
+      badge = 'Locked';
+      bg = s.errorContainer;
+      fg = s.onErrorContainer;
+    } else {
+      badge = 'Ready';
+      bg = s.primaryContainer;
+      fg = s.onPrimaryContainer;
+    }
+
     Widget action;
     if (a.closed) {
-      final s = a.score != null && a.maxScore != null
+      final txt = a.score != null && a.maxScore != null
           ? '${a.score!.toStringAsFixed(a.score! % 1 == 0 ? 0 : 2)} / ${a.maxScore!.toStringAsFixed(0)}'
           : 'Submitted';
-      action = Chip(avatar: const Icon(Icons.check_circle, size: 18), label: Text('Completed: $s'));
+      action = Chip(avatar: const Icon(Icons.check_circle, size: 18), label: Text('Completed: $txt'));
     } else if (a.inProgress) {
       action = FilledButton(key: Key('action-${a.id}'), onPressed: onOpen, child: const Text('Resume'));
-    } else if (!a.eligible) {
+    } else if (locked) {
       action = const FilledButton(onPressed: null, child: Text('Not eligible'));
     } else {
       action = FilledButton(key: Key('action-${a.id}'), onPressed: onOpen, child: const Text('Start'));
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(a.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          if (a.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(a.description)),
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 4, children: [
-            Chip(avatar: const Icon(Icons.timer_outlined, size: 18), label: Text('${a.durationMinutes} min')),
-            Chip(avatar: const Icon(Icons.quiz_outlined, size: 18), label: Text('${a.questionsPerAttempt} questions')),
-            Chip(avatar: const Icon(Icons.event_available, size: 18), label: Text('Min attendance ${a.minAttendancePct.toStringAsFixed(0)}%')),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14)),
+              child: Icon(Icons.assignment_outlined, color: fg),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(a.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                if (a.description.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(a.description, style: TextStyle(color: s.onSurfaceVariant)),
+                  ),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+              child: Text(badge, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
           ]),
-          if (!a.eligible && !a.closed && !a.inProgress)
+          const SizedBox(height: 14),
+          Wrap(spacing: 18, runSpacing: 6, children: [
+            _meta(context, Icons.timer_outlined, '${a.durationMinutes} min'),
+            _meta(context, Icons.quiz_outlined, '${a.questionsPerAttempt} questions'),
+            _meta(context, Icons.event_available_outlined,
+                'Min attendance ${a.minAttendancePct.toStringAsFixed(0)}%'),
+          ]),
+          if (locked)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 10),
               child: Text(
                 'Attendance ${attendance.toStringAsFixed(0)}% is below the required ${a.minAttendancePct.toStringAsFixed(0)}%.',
-                style: TextStyle(color: scheme.error),
+                style: TextStyle(color: s.error),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Align(alignment: Alignment.centerRight, child: action),
         ]),
       ),
