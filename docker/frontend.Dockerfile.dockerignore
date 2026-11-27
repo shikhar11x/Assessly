@@ -1,0 +1,5 @@
+**
+!application/frontend/assessly_flutter
+!docker/nginx.conf
+application/frontend/assessly_flutter/.dart_tool
+application/frontend/assessly_flutter/build
