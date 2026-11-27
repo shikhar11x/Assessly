@@ -45,3 +45,5 @@
 
 - Phase 2g-1: change password, student performance history, teacher attendance edit, unassign, per-attempt detail and CSV results export (backend).
 
+- Phase 2g-2a: design system tokens (warm light / GitHub dark), BLoC introduced with ThemeCubit.
+
