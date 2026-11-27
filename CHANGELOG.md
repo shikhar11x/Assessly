@@ -43,3 +43,5 @@
 
 - Phase 4: Jenkins controller (config-as-code, Docker CLI, Node 22) and Jenkinsfile: unit and integration tests with JUnit reports, Flutter analyze/test, image build tagged with commit SHA, container smoke test, optional Docker Hub push, GitHub webhook trigger via Cloudflare quick tunnel.
 
+- Phase 2g-1: change password, student performance history, teacher attendance edit, unassign, per-attempt detail and CSV results export (backend).
+
