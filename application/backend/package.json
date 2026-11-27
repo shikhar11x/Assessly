@@ -12,7 +12,9 @@
     "dev": "node --watch src/server.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
-    "test:integration": "jest --runInBand --testPathPatterns integration"
+    "test:integration": "jest --runInBand --testPathPatterns integration",
+    "test:ci": "jest --runInBand --testPathIgnorePatterns integration --reporters=default --reporters=jest-junit",
+    "test:integration:ci": "jest --runInBand --testPathPatterns integration --reporters=default --reporters=jest-junit"
   },
   "keywords": [],
   "type": "commonjs",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "jest": "^30.5.2",
+    "jest-junit": "^17.0.0",
     "supertest": "^7.3.2"
   },
   "engines": {
