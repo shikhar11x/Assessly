@@ -295,5 +295,26 @@ router.get('/attempts/:id/result', handle(async (req, res) => {
   });
 }));
 
+// GET /api/student/performance - every closed attempt with its score, plus the average
+router.get('/performance', handle(async (req, res) => {
+  const r = await query(
+    `SELECT t.id, a.title, t.status, t.score, t.max_score, t.submitted_at
+     FROM attempts t JOIN assessments a ON a.id = t.assessment_id
+     WHERE t.student_id = $1 AND t.status <> 'in_progress'
+     ORDER BY t.submitted_at DESC`, [req.user.id]);
+  const attempts = r.rows.map((x) => {
+    const score = x.score === null ? 0 : Number(x.score);
+    const max = x.max_score === null ? 0 : Number(x.max_score);
+    return {
+      attemptId: x.id, title: x.title, status: x.status, score, maxScore: max,
+      percentage: max > 0 ? Math.round((score / max) * 10000) / 100 : 0,
+      submittedAt: x.submitted_at,
+    };
+  });
+  const avg = attempts.length
+    ? Math.round((attempts.reduce((n, a) => n + a.percentage, 0) / attempts.length) * 100) / 100 : 0;
+  res.json({ attempts, summary: { count: attempts.length, averagePct: avg } });
+}));
+
 module.exports = router;
 module.exports.helpers = { HttpError, handle, getOwnAttempt, expireIfNeeded };
