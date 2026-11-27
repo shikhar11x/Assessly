@@ -41,3 +41,5 @@
   resource limits.
 - Phase 4: Jenkins controller (config-as-code, Docker CLI, Node 22) and Jenkinsfile: unit and integration tests with JUnit reports, Flutter analyze/test, image build tagged with commit SHA, container smoke test, optional Docker Hub push.
 
+- Phase 4: Jenkins controller (config-as-code, Docker CLI, Node 22) and Jenkinsfile: unit and integration tests with JUnit reports, Flutter analyze/test, image build tagged with commit SHA, container smoke test, optional Docker Hub push, GitHub webhook trigger via Cloudflare quick tunnel.
+
