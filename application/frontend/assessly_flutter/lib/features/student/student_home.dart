@@ -24,7 +24,7 @@ class _StudentHomeState extends State<StudentHome> {
     _future = _api.dashboard();
   }
 
-  void _reload() => setState(() => _future = _api.dashboard());
+  void _reload() => setState(() { _future = _api.dashboard(); });
 
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
