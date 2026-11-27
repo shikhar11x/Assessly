@@ -90,7 +90,7 @@ class _QuestionsTab extends StatefulWidget {
 class _QuestionsTabState extends State<_QuestionsTab> {
   late Future<List<Map<String, dynamic>>> _future = widget.api.questions(widget.id);
 
-  void _reload() => setState(() => _future = widget.api.questions(widget.id));
+  void _reload() => setState(() { _future = widget.api.questions(widget.id); });
 
   Future<void> _add() async {
     final body = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => const _QuestionDialog());
@@ -382,7 +382,7 @@ class _StudentsTabState extends State<_StudentsTab> {
   late Future<List<Map<String, dynamic>>> _future = widget.api.assignments(widget.id);
   bool _busy = false;
 
-  void _reload() => setState(() => _future = widget.api.assignments(widget.id));
+  void _reload() => setState(() { _future = widget.api.assignments(widget.id); });
 
   Future<void> _import() async {
     final csv = await showDialog<String>(context: context, builder: (_) => const _ImportDialog());
@@ -567,7 +567,7 @@ class _ResultsTab extends StatefulWidget {
 }
 
 class _ResultsTabState extends State<_ResultsTab> {
-  late Future<List<Object>> _future = Future.wait<Object>([
+  late final Future<List<Object>> _future = Future.wait<Object>([
     widget.api.analytics(widget.id),
     widget.api.submissions(widget.id),
   ]);

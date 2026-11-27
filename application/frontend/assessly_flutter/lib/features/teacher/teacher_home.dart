@@ -23,7 +23,7 @@ class _TeacherHomeState extends State<TeacherHome> {
     _future = _api.assessments();
   }
 
-  void _reload() => setState(() => _future = _api.assessments());
+  void _reload() => setState(() { _future = _api.assessments(); });
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
