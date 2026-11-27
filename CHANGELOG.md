@@ -27,3 +27,6 @@
 - Phase 2f-2: student dashboard - assessment list, attendance and eligibility display,
   start (with confirmation) and resume; placeholder exam page; login page redesign;
   backend accepts multiple CORS origins.
+- Phase 2f-3: exam screen (server-based countdown, question palette, mark for review,
+  autosave, auto-submit, tab-switch warning, score screen); light/dark theme with
+  persistent toggle; dashboard redesign. Coding editor follows in 2f-4.
