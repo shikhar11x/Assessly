@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/app_shell.dart';
 import '../auth/auth_state.dart';
 import 'assessment_page.dart';
 import 'teacher_api.dart';
@@ -47,7 +48,7 @@ class _TeacherHomeState extends State<TeacherHome> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
-    return Scaffold(
+    return AppShell(role: AppRole.faculty,
       appBar: AppBar(
         title: const Text('Teacher dashboard'),
         actions: [
@@ -132,7 +133,7 @@ class _Hero extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [s.primary, Color.lerp(s.primary, s.tertiary, 0.7)!],
+          colors: [s.primary, s.primary],
         ),
         boxShadow: [BoxShadow(color: s.primary.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10))],
       ),

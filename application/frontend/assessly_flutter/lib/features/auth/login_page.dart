@@ -35,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
         prefixIcon: Icon(icon),
         suffixIcon: suffix,
         filled: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.controlRadius)),
       );
 
   void _fillDemo(String email) {
@@ -89,8 +89,8 @@ class _LoginPageState extends State<LoginPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.cardRadius)),
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Form(
@@ -164,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: scheme.errorContainer,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
                             ),
                             child: Row(children: [
                               Icon(Icons.error_outline, color: scheme.onErrorContainer),
@@ -177,7 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                           key: const Key('submit'),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.controlRadius)),
                           ),
                           onPressed: _busy ? null : _submit,
                           child: _busy

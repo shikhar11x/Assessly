@@ -476,8 +476,8 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
       timerBg = s.errorContainer;
       timerFg = s.onErrorContainer;
     } else if (_remaining <= 300) {
-      timerBg = s.tertiaryContainer;
-      timerFg = s.onTertiaryContainer;
+      timerBg = context.colors.warning.withValues(alpha: 0.15);
+      timerFg = context.colors.warning;
     } else {
       timerBg = s.primaryContainer;
       timerFg = s.onPrimaryContainer;
