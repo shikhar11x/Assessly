@@ -35,3 +35,7 @@
 - Phase 2f-5: teacher dashboard - assessment list and creation, question bank (MCQ and
   coding with test cases), CSV student import, attendance-based assignment, publish and
   unpublish, submissions, analytics. Phase 2 (application MVP) complete.
+- Phase 3: containerization - multi-stage non-root backend image, Flutter web + unprivileged
+  nginx frontend image (same-origin /api proxy), one-shot migration service, full Docker Compose
+  stack with healthchecks, ordered startup, read-only filesystems, dropped capabilities and
+  resource limits.
