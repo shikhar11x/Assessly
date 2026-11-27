@@ -32,3 +32,6 @@
   persistent toggle; dashboard redesign. Coding editor follows in 2f-4.
 - Phase 2f-4: code editor with Run (sample) and Submit (all cases) verdicts, code autosave,
   detailed result page reachable from the exam and the dashboard.
+- Phase 2f-5: teacher dashboard - assessment list and creation, question bank (MCQ and
+  coding with test cases), CSV student import, attendance-based assignment, publish and
+  unpublish, submissions, analytics. Phase 2 (application MVP) complete.
