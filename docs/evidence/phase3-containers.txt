@@ -1,0 +1,23 @@
+Phase 3 container verification - 2026-11-27T14:26:59
+
+--- docker compose ps -a ---
+NAME                IMAGE                     COMMAND                  SERVICE    CREATED          STATUS                      PORTS
+assessly-backend    assessly-backend:local    "docker-entrypoint.s???"   backend    50 seconds ago   Up 39 seconds (healthy)     127.0.0.1:3002->3000/tcp
+assessly-executor   docker-executor           "docker-entrypoint.s???"   executor   50 seconds ago   Up 49 seconds (healthy)     127.0.0.1:4000->4000/tcp
+assessly-frontend   assessly-frontend:local   "/docker-entrypoint.???"   frontend   50 seconds ago   Up 33 seconds (healthy)     127.0.0.1:8090->8080/tcp
+assessly-migrate    assessly-backend:local    "docker-entrypoint.s???"   migrate    50 seconds ago   Exited (0) 44 seconds ago   
+assessly-postgres   postgres:16-alpine        "docker-entrypoint.s???"   postgres   50 seconds ago   Up 50 seconds (healthy)     0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+
+--- non-root check ---
+backend:  uid=1000(node) gid=1000(node) groups=1000(node)
+frontend: uid=101(nginx) gid=101(nginx) groups=101(nginx)
+
+--- image sizes ---
+assessly-frontend:local  130MB
+assessly-backend:local  259MB
+
+--- memory/cpu snapshot ---
+assessly-frontend  14.21MiB / 64MiB  2.63%
+assessly-backend  24.45MiB / 256MiB  0.00%
+assessly-postgres  24.35MiB / 256MiB  0.03%
+assessly-executor  12MiB / 256MiB  0.03%
