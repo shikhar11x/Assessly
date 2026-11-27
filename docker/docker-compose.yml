@@ -1,4 +1,8 @@
-# Local development environment (extended in Phase 3)
+# Full local stack: postgres -> migrate (one-shot) -> backend -> frontend, plus the isolated executor.
+x-backend-build: &backend-build
+  context: ..
+  dockerfile: docker/backend.Dockerfile
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -52,6 +56,82 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
+  # Applies database migrations, then exits. Seed data: docker compose run --rm migrate node src/seed.js
+  migrate:
+    build: *backend-build
+    image: assessly-backend:local
+    container_name: assessly-migrate
+    command: ["node", "src/migrate.js"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+
+  backend:
+    build: *backend-build
+    image: assessly-backend:local
+    container_name: assessly-backend
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in docker/.env}
+      JWT_EXPIRES_IN: 2h
+      EXECUTOR_URL: http://executor:4000
+      EXECUTOR_TOKEN: ${EXECUTOR_TOKEN:?set EXECUTOR_TOKEN in docker/.env}
+      CORS_ORIGIN: http://localhost:8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      executor:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3002:3000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        API_BASE_URL: same-origin
+    image: assessly-frontend:local
+    container_name: assessly-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8090:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 64m
+    cpus: 0.25
 
 volumes:
   assessly_pgdata:
