@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'core/api_client.dart';
 import 'core/theme.dart';
@@ -14,14 +15,14 @@ void main() {
 
 class AssesslyApp extends StatefulWidget {
   final AuthState auth;
-  final ThemeController? themeController;
-  const AssesslyApp({super.key, required this.auth, this.themeController});
+  final ThemeCubit? themeCubit;
+  const AssesslyApp({super.key, required this.auth, this.themeCubit});
   @override
   State<AssesslyApp> createState() => _AssesslyAppState();
 }
 
 class _AssesslyAppState extends State<AssesslyApp> {
-  late final ThemeController _theme = widget.themeController ?? ThemeController();
+  late final ThemeCubit _theme = widget.themeCubit ?? ThemeCubit();
 
   @override
   void initState() {
@@ -36,16 +37,18 @@ class _AssesslyAppState extends State<AssesslyApp> {
       providers: [
         Provider<ApiClient>.value(value: widget.auth.api),
         ChangeNotifierProvider<AuthState>.value(value: widget.auth),
-        ChangeNotifierProvider<ThemeController>.value(value: _theme),
       ],
-      child: Consumer<ThemeController>(
-        builder: (context, theme, _) => MaterialApp(
-          title: 'Assessly',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: theme.mode,
-          home: const _Gate(),
+      child: BlocProvider<ThemeCubit>.value(
+        value: _theme,
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, mode) => MaterialApp(
+            title: 'Assessly',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: mode,
+            home: const _Gate(),
+          ),
         ),
       ),
     );
