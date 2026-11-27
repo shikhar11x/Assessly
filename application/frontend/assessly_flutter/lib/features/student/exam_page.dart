@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
+import 'code_panel.dart';
 import 'exam_api.dart';
+import 'result_page.dart';
 import 'student_api.dart';
 
 class ExamQuestion {
@@ -13,6 +15,7 @@ class ExamQuestion {
   final List<String> options;
   final int marks;
   final List<Map<String, String>> samples;
+  final String starter;
   int? selected;
   String? code;
   bool marked;
@@ -24,6 +27,7 @@ class ExamQuestion {
     required this.options,
     required this.marks,
     required this.samples,
+    this.starter = '',
     this.selected,
     this.code,
     this.marked = false,
@@ -35,6 +39,7 @@ class ExamQuestion {
         prompt: j['prompt'] as String,
         options: ((j['options'] as List?) ?? const []).map((e) => e.toString()).toList(),
         marks: j['marks'] as int,
+        starter: (j['starterCode'] ?? '') as String,
         samples: ((j['sampleCases'] as List?) ?? const []).map((e) {
           final m = e as Map<String, dynamic>;
           return {'input': '${m['input']}', 'expected': '${m['expectedOutput']}'};
@@ -188,6 +193,27 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     _queueSave(q);
   }
 
+  Timer? _codeDebounce;
+  ExamQuestion? _pendingCode;
+
+  /// Code is saved about a second after the student stops typing.
+  void _codeChanged(ExamQuestion q, String code) {
+    q.code = code;
+    _pendingCode = q;
+    _codeDebounce?.cancel();
+    _codeDebounce = Timer(const Duration(milliseconds: 900), _flushCode);
+    setState(() {});
+  }
+
+  void _flushCode() {
+    _codeDebounce?.cancel();
+    final q = _pendingCode;
+    if (q != null) {
+      _pendingCode = null;
+      _queueSave(q);
+    }
+  }
+
   void _toggleMark(ExamQuestion q) {
     setState(() => q.marked = !q.marked);
     _queueSave(q);
@@ -228,6 +254,7 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() => _submitting = true);
     try {
+      _flushCode();
       await _saveQueue; // make sure the last answers reached the server
       final res = await _api.submit(widget.attemptId);
       _ticker?.cancel();
@@ -414,6 +441,14 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                     Text('Tab switches recorded: $_tabSwitches', style: TextStyle(color: s.error)),
                   ],
                   const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const Key('view-result'),
+                    onPressed: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => ResultPage(attemptId: widget.attemptId))),
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('View detailed result'),
+                  ),
+                  const SizedBox(height: 12),
                   Text('Multiple-choice marks are counted now. Coding marks count only for code you submitted.',
                       textAlign: TextAlign.center, style: TextStyle(color: s.onSurfaceVariant, fontSize: 12)),
                   const SizedBox(height: 24),
@@ -543,7 +578,14 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
                 ),
               ),
           ] else
-            _codingPlaceholder(q, s),
+            CodePanel(
+              key: ValueKey(q.id),
+              attemptId: widget.attemptId,
+              questionId: q.id,
+              initialCode: q.code ?? q.starter,
+              samples: q.samples,
+              onChanged: (c) => _codeChanged(q, c),
+            ),
           if (_saveError != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -583,32 +625,6 @@ class _ExamPageState extends State<ExamPage> with WidgetsBindingObserver {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _codingPlaceholder(ExamQuestion q, ColorScheme s) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: s.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.code_rounded, color: s.primary),
-          const SizedBox(width: 8),
-          const Text('Coding question', style: TextStyle(fontWeight: FontWeight.bold)),
-        ]),
-        const SizedBox(height: 8),
-        Text('The code editor with Run and Submit arrives in the next build step (2f-4).',
-            style: TextStyle(color: s.onSurfaceVariant)),
-        for (final c in q.samples) ...[
-          const SizedBox(height: 12),
-          Text('Sample input:\n${c['input']}\nExpected output:\n${c['expected']}',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
-        ],
-      ]),
     );
   }
 

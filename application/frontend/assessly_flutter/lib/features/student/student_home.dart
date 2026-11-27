@@ -4,6 +4,7 @@ import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../auth/auth_state.dart';
 import 'exam_page.dart';
+import 'result_page.dart';
 import 'student_api.dart';
 
 class StudentHome extends StatefulWidget {
@@ -30,6 +31,10 @@ class _StudentHomeState extends State<StudentHome> {
 
   Future<void> _open(AssessmentItem a) async {
     try {
+      if (a.closed && a.attemptId != null) {
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResultPage(attemptId: a.attemptId!)));
+        return;
+      }
       String attemptId;
       if (a.inProgress && a.attemptId != null) {
         attemptId = a.attemptId!;
@@ -228,7 +233,7 @@ class _AssessmentCard extends StatelessWidget {
       final txt = a.score != null && a.maxScore != null
           ? '${a.score!.toStringAsFixed(a.score! % 1 == 0 ? 0 : 2)} / ${a.maxScore!.toStringAsFixed(0)}'
           : 'Submitted';
-      action = Chip(avatar: const Icon(Icons.check_circle, size: 18), label: Text('Completed: $txt'));
+      action = FilledButton.tonalIcon(key: Key('action-${a.id}'), onPressed: onOpen, icon: const Icon(Icons.fact_check_outlined, size: 18), label: Text('Completed: $txt'));
     } else if (a.inProgress) {
       action = FilledButton(key: Key('action-${a.id}'), onPressed: onOpen, child: const Text('Resume'));
     } else if (locked) {
