@@ -1,0 +1,5 @@
+**
+!application/backend/package.json
+!application/backend/package-lock.json
+!application/backend/src
+!application/database/migrations
