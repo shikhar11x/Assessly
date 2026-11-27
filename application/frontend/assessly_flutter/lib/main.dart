@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/api_client.dart';
+import 'core/theme.dart';
 import 'features/auth/auth_state.dart';
 import 'features/auth/login_page.dart';
 import 'features/student/student_home.dart';
@@ -13,16 +14,20 @@ void main() {
 
 class AssesslyApp extends StatefulWidget {
   final AuthState auth;
-  const AssesslyApp({super.key, required this.auth});
+  final ThemeController? themeController;
+  const AssesslyApp({super.key, required this.auth, this.themeController});
   @override
   State<AssesslyApp> createState() => _AssesslyAppState();
 }
 
 class _AssesslyAppState extends State<AssesslyApp> {
+  late final ThemeController _theme = widget.themeController ?? ThemeController();
+
   @override
   void initState() {
     super.initState();
     widget.auth.restore();
+    _theme.load();
   }
 
   @override
@@ -31,12 +36,17 @@ class _AssesslyAppState extends State<AssesslyApp> {
       providers: [
         Provider<ApiClient>.value(value: widget.auth.api),
         ChangeNotifierProvider<AuthState>.value(value: widget.auth),
+        ChangeNotifierProvider<ThemeController>.value(value: _theme),
       ],
-      child: MaterialApp(
-        title: 'Assessly',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorSchemeSeed: const Color(0xFF3F51B5), useMaterial3: true),
-        home: const _Gate(),
+      child: Consumer<ThemeController>(
+        builder: (context, theme, _) => MaterialApp(
+          title: 'Assessly',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: theme.mode,
+          home: const _Gate(),
+        ),
       ),
     );
   }

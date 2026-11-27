@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme.dart';
 import 'auth_state.dart';
 
 /// Sign in, or register (students only; teacher accounts are created by seed/admin).
@@ -69,6 +70,11 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        actions: [ThemeToggleButton(), SizedBox(width: 8)],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
