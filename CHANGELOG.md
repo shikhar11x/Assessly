@@ -24,3 +24,6 @@
   a NetworkPolicy covers this in Phase 6.
 - Phase 2f-1: Flutter skeleton - API client, login/register, session restore,
   role-based routing, widget tests.
+- Phase 2f-2: student dashboard - assessment list, attendance and eligibility display,
+  start (with confirmation) and resume; placeholder exam page; login page redesign;
+  backend accepts multiple CORS origins.
