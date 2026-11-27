@@ -1,0 +1,604 @@
+Started by user admin
+Obtained jenkins/Jenkinsfile from git https://github.com/shikhar11x/Assessly.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/assessly
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] timestamps
+[Pipeline] {
+[Pipeline] timeout
+14:54:44  Timeout set to expire in 1 hr 0 min
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Git Checkout)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] checkout
+14:54:44  Selected Git installation does not exist. Using Default
+14:54:44  The recommended git tool is: NONE
+14:54:44  No credentials specified
+14:54:44  Cloning the remote Git repository
+14:54:44  Cloning repository https://github.com/shikhar11x/Assessly.git
+14:54:44   > git init /var/jenkins_home/workspace/assessly # timeout=10
+14:54:44  Fetching upstream changes from https://github.com/shikhar11x/Assessly.git
+14:54:44   > git --version # timeout=10
+14:54:44   > git --version # 'git version 2.47.3'
+14:54:44   > git fetch --tags --force --progress -- https://github.com/shikhar11x/Assessly.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+14:54:45   > git config remote.origin.url https://github.com/shikhar11x/Assessly.git # timeout=10
+14:54:45   > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+14:54:45  Avoid second fetch
+14:54:45   > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+14:54:45  Checking out Revision 8d79bfe6349532c5130ffd7feeeaffc5edd0e857 (refs/remotes/origin/main)
+14:54:45   > git config core.sparsecheckout # timeout=10
+14:54:45   > git checkout -f 8d79bfe6349532c5130ffd7feeeaffc5edd0e857 # timeout=10
+14:54:45  Commit message: "feat(ci): add Jenkins pipeline (tests, integration, image build, smoke test, optional push)"
+14:54:45  First time build. Skipping changelog.
+[Pipeline] sh
+14:54:46  + head -c 18 /dev/urandom
+14:54:46  + od -An -tx1
+14:54:46  + tr -d  \n
+[Pipeline] sh
+14:54:46  + head -c 18 /dev/urandom
+14:54:46  + od -An -tx1
+14:54:46  + tr -d  \n
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] sh
+14:54:46  + rm -rf reports/unit reports/integration
+14:54:46  + mkdir -p reports/unit reports/integration
+14:54:46  + git log -1 --oneline
+14:54:46  8d79bfe feat(ci): add Jenkins pipeline (tests, integration, image build, smoke test, optional push)
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Install Dependencies)
+[Pipeline] dir
+14:54:47  Running in /var/jenkins_home/workspace/assessly/application/backend
+[Pipeline] {
+[Pipeline] sh
+14:54:47  + npm ci
+14:54:51  npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+14:54:53  
+14:54:53  added 400 packages, and audited 401 packages in 6s
+14:54:53  
+14:54:53  89 packages are looking for funding
+14:54:53    run `npm fund` for details
+14:54:53  
+14:54:53  18 moderate severity vulnerabilities
+14:54:53  
+14:54:53  To address issues that do not require attention, run:
+14:54:53    npm audit fix
+14:54:53  
+14:54:53  To address all issues (including breaking changes), run:
+14:54:53    npm audit fix --force
+14:54:53  
+14:54:53  Run `npm audit` for details.
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Backend Unit Tests)
+[Pipeline] dir
+14:54:53  Running in /var/jenkins_home/workspace/assessly/application/backend
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] sh
+14:54:53  + npm run test:ci
+14:54:53  
+14:54:53  > assessly-backend@1.0.0 test:ci
+14:54:53  > jest --runInBand --testPathIgnorePatterns integration --reporters=default --reporters=jest-junit
+14:54:53  
+14:54:54  PASS tests/assessment_service.test.js
+14:54:54  PASS tests/judge.test.js
+14:54:54  PASS tests/teacher_logic.test.js
+14:54:54  PASS tests/middleware.test.js
+14:54:54  PASS tests/health.test.js
+14:54:54  
+14:54:54  Test Suites: 5 passed, 5 total
+14:54:54  Tests:       33 passed, 33 total
+14:54:54  Snapshots:   0 total
+14:54:54  Time:        0.897 s
+14:54:54  Ran all test suites.
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // dir
+Post stage
+[Pipeline] junit
+14:54:55  Recording test results
+14:54:55  [Checks API] No suitable checks publisher found.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Integration Tests)
+[Pipeline] sh
+14:54:55  + docker network create assessly-ci-1
+14:54:55  0e4cc4fb1398fc32560374f5634e7de295cb98f4e856fb858af8d9bab3d98e17
+14:54:55  + docker run -d --name assessly-ci-pg-1 --network assessly-ci-1 -e POSTGRES_DB=assessly -e POSTGRES_USER=assessly -e POSTGRES_PASSWORD=b8c6b3a9bbc03736f0ae031afac716abe966 --tmpfs /var/lib/postgresql/data postgres:16-alpine
+14:54:56  363ae36c76ae6b64893f36ef39f311c27a176384808deb0a467f50a48ddb3abf
+14:54:56  + hostname
+14:54:56  + docker network connect assessly-ci-1 155d138eb3b6
+14:54:56  + seq 1 30
+14:54:56  + docker exec assessly-ci-pg-1 pg_isready -h 127.0.0.1 -U assessly -d assessly
+14:54:56  127.0.0.1:5432 - no response
+14:54:56  + sleep 2
+14:54:58  + docker exec assessly-ci-pg-1 pg_isready -h 127.0.0.1 -U assessly -d assessly
+14:54:58  127.0.0.1:5432 - accepting connections
+14:54:58  + break
+14:54:58  + docker exec assessly-ci-pg-1 pg_isready -h 127.0.0.1 -U assessly -d assessly
+14:54:58  127.0.0.1:5432 - accepting connections
+[Pipeline] dir
+14:54:58  Running in /var/jenkins_home/workspace/assessly/application/backend
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] sh
+14:54:59  + node src/migrate.js
+14:54:59  ◇ injected env (0) from .env
+14:54:59  applied 001_initial_schema.sql
+14:54:59  + node src/seed.js
+14:54:59  ◇ injected env (0) from .env
+14:54:59  Seeded: 1 teacher, 3 students, 1 assessment, 10 questions.
+14:54:59  + npm run test:integration:ci
+14:54:59  
+14:54:59  > assessly-backend@1.0.0 test:integration:ci
+14:54:59  > jest --runInBand --testPathPatterns integration --reporters=default --reporters=jest-junit
+14:54:59  
+14:55:01  PASS tests/teacher.integration.test.js
+14:55:02  PASS tests/student.integration.test.js
+14:55:03  PASS tests/coding.integration.test.js
+14:55:04  PASS tests/auth.integration.test.js
+14:55:04  
+14:55:04  Test Suites: 4 passed, 4 total
+14:55:04  Tests:       34 passed, 34 total
+14:55:04  Snapshots:   0 total
+14:55:04  Time:        4.554 s
+14:55:04  Ran all test suites matching integration.
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // dir
+Post stage
+[Pipeline] junit
+14:55:04  Recording test results
+14:55:04  [Checks API] No suitable checks publisher found.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Frontend Analyze and Tests)
+[Pipeline] sh
+14:55:04  + docker build --progress=plain --target test -f docker/frontend.Dockerfile .
+14:55:05  #0 building with "default" instance using docker driver
+14:55:05  
+14:55:05  #1 [internal] load build definition from frontend.Dockerfile
+14:55:05  #1 transferring dockerfile: 1.93kB done
+14:55:05  #1 DONE 0.0s
+14:55:05  
+14:55:05  #2 [internal] load metadata for docker.io/library/debian:bookworm-slim
+14:55:06  #2 DONE 1.6s
+14:55:06  
+14:55:06  #3 [flutter 1/4] FROM docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
+14:55:06  #3 resolve docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e 0.0s done
+14:55:06  #3 DONE 0.0s
+14:55:06  
+14:55:06  #4 [internal] load build context
+14:55:06  #4 transferring context: 213.60kB 0.0s done
+14:55:06  #4 DONE 0.1s
+14:55:06  
+14:55:06  #5 [flutter 2/4] RUN apt-get update     && apt-get install -y --no-install-recommends git curl unzip xz-utils ca-certificates     && rm -rf /var/lib/apt/lists/*
+14:55:06  #5 CACHED
+14:55:06  
+14:55:06  #6 [flutter 3/4] RUN git clone --depth 1 --branch 3.47.8 https://github.com/flutter/flutter.git /opt/flutter
+14:55:06  #6 CACHED
+14:55:06  
+14:55:06  #7 [flutter 4/4] RUN git config --global --add safe.directory /opt/flutter     && flutter config --no-analytics --enable-web     && flutter precache --web     && flutter --version
+14:55:06  #7 CACHED
+14:55:06  
+14:55:06  #8 [source 1/4] WORKDIR /app
+14:55:06  #8 CACHED
+14:55:06  
+14:55:06  #9 [source 2/4] COPY application/frontend/assessly_flutter/pubspec.yaml application/frontend/assessly_flutter/pubspec.lock ./
+14:55:06  #9 DONE 0.1s
+14:55:06  
+14:55:06  #10 [source 3/4] RUN flutter pub get
+14:55:07  #10 0.721    Woah! You appear to be trying to run flutter as root.
+14:55:07  #10 0.721    We strongly recommend running the flutter tool without superuser privileges.
+14:55:07  #10 0.721   /
+14:55:07  #10 0.721 📎
+14:55:07  #10 1.276 Resolving dependencies...
+14:55:09  #10 2.661 Downloading packages...
+14:55:13  #10 5.963   cupertino_icons 1.0.9 (2.0.0 available)
+14:55:13  #10 5.963   material_color_utilities 0.13.0 (0.13.1 available)
+14:55:13  #10 5.963   meta 1.18.3 (1.19.0 available)
+14:55:13  #10 5.963   shared_preferences_foundation 2.5.7 (2.6.2 available)
+14:55:13  #10 5.963   test_api 0.7.12 (0.7.15 available)
+14:55:13  #10 5.963   vector_math 2.4.0 (2.4.4 available)
+14:55:13  #10 5.963 Got dependencies!
+14:55:13  #10 5.963 6 packages have newer versions incompatible with dependency constraints.
+14:55:13  #10 5.963 Try `flutter pub outdated` for more information.
+14:55:13  #10 DONE 6.2s
+14:55:13  
+14:55:13  #11 [source 4/4] COPY application/frontend/assessly_flutter/ ./
+14:55:13  #11 DONE 0.1s
+14:55:13  
+14:55:13  #12 [test 1/1] RUN flutter analyze && flutter test
+14:55:13  #12 0.202    Woah! You appear to be trying to run flutter as root.
+14:55:13  #12 0.202    We strongly recommend running the flutter tool without superuser privileges.
+14:55:13  #12 0.202   /
+14:55:13  #12 0.202 📎
+14:55:13  #12 0.366 Resolving dependencies...
+14:55:13  #12 0.415 Downloading packages...
+14:55:13  #12 0.490   cupertino_icons 1.0.9 (2.0.0 available)
+14:55:13  #12 0.490   material_color_utilities 0.13.0 (0.13.1 available)
+14:55:13  #12 0.490   meta 1.18.3 (1.19.0 available)
+14:55:13  #12 0.490   shared_preferences_foundation 2.5.7 (2.6.2 available)
+14:55:13  #12 0.490   test_api 0.7.12 (0.7.15 available)
+14:55:13  #12 0.490   vector_math 2.4.0 (2.4.4 available)
+14:55:13  #12 0.490 Got dependencies!
+14:55:13  #12 0.490 6 packages have newer versions incompatible with dependency constraints.
+14:55:13  #12 0.490 Try `flutter pub outdated` for more information.
+14:55:23  #12 2.034 Analyzing app...                                                
+14:55:23  #12 10.03 No issues found! (ran in 8.0s)
+14:55:23  #12 10.05    Woah! You appear to be trying to run flutter as root.
+14:55:23  #12 10.05    We strongly recommend running the flutter tool without superuser privileges.
+14:55:23  #12 10.05   /
+14:55:23  #12 10.05 📎
+14:55:23  #12 10.23 Resolving dependencies...
+14:55:23  #12 10.28 Downloading packages...
+14:55:23  #12 10.33   cupertino_icons 1.0.9 (2.0.0 available)
+14:55:23  #12 10.33   material_color_utilities 0.13.0 (0.13.1 available)
+14:55:23  #12 10.33   meta 1.18.3 (1.19.0 available)
+14:55:23  #12 10.33   shared_preferences_foundation 2.5.7 (2.6.2 available)
+14:55:23  #12 10.33   test_api 0.7.12 (0.7.15 available)
+14:55:23  #12 10.33   vector_math 2.4.0 (2.4.4 available)
+14:55:23  #12 10.33 Got dependencies!
+14:55:23  #12 10.33 6 packages have newer versions incompatible with dependency constraints.
+14:55:23  #12 10.33 Try `flutter pub outdated` for more information.
+14:55:24  #12 11.17 00:00 +0: loading /app/test/theme_test.dart
+14:55:32  #12 19.07 00:00 +0: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:33  #12 20.60 00:01 +1: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:33  #12 20.60 00:01 +2: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:33  #12 20.92 00:01 +3: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:34  #12 21.10 00:02 +4: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:34  #12 21.22 00:02 +5: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:34  #12 21.24 00:02 +6: /app/test/theme_test.dart: theme toggle switches light and dark and remembers the choice
+14:55:34  #12 21.31 00:02 +7: /app/test/student_home_test.dart: shows attendance and a Start button for an eligible assessment
+14:55:34  #12 21.39 00:02 +8: /app/test/widget_test.dart: shows the login form first
+14:55:34  #12 21.53 00:02 +9: /app/test/widget_test.dart: shows the login form first
+14:55:34  #12 21.54 00:02 +10: /app/test/widget_test.dart: shows the login form first
+14:55:34  #12 21.75 00:02 +11: /app/test/widget_test.dart: shows the login form first
+14:55:34  #12 21.85 00:02 +12: /app/test/widget_test.dart: shows the login form first
+14:55:35  #12 21.92 00:02 +13: /app/test/widget_test.dart: shows the login form first
+14:55:35  #12 22.13 00:03 +14: /app/test/widget_test.dart: shows the login form first
+14:55:35  #12 22.20 00:03 +15: /app/test/widget_test.dart: shows the login form first
+14:55:35  #12 22.39 00:03 +16: /app/test/widget_test.dart: shows the login form first
+14:55:35  #12 22.41 00:03 +17: /app/test/exam_page_test.dart: loads the attempt: first question, timer and navigation
+14:55:35  #12 22.55 00:03 +18: /app/test/teacher_test.dart: adding an MCQ posts the options and the correct index
+14:55:35  #12 22.72 00:03 +19: /app/test/teacher_test.dart: adding an MCQ posts the options and the correct index
+14:55:35  #12 22.89 00:03 +20: /app/test/teacher_test.dart: adding an MCQ posts the options and the correct index
+14:55:36  #12 23.10 00:04 +21: /app/test/widget_test.dart: a teacher login lands on the teacher dashboard
+14:55:36  #12 23.13 00:04 +22: /app/test/widget_test.dart: a teacher login lands on the teacher dashboard
+14:55:36  #12 23.18 00:04 +23: /app/test/teacher_test.dart: publish failure shows the server message
+14:55:36  #12 23.29 00:04 +24: /app/test/exam_page_test.dart: Next and the question palette move between questions
+14:55:36  #12 23.45 00:04 +25: /app/test/exam_page_test.dart: Next and the question palette move between questions
+14:55:36  #12 23.57 00:04 +26: /app/test/exam_page_test.dart: Next and the question palette move between questions
+14:55:36  #12 23.66 00:04 +27: /app/test/widget_test.dart: shows the server error on a wrong password
+14:55:36  #12 23.76 00:04 +28: /app/test/exam_page_test.dart: submit asks for confirmation, then shows the score
+14:55:36  #12 23.93 00:04 +29: /app/test/exam_page_test.dart: submits automatically when the time runs out
+14:55:37  #12 24.02 00:04 +30: /app/test/exam_page_test.dart: records a tab switch and warns when the student comes back
+14:55:37  #12 24.28 00:05 +31: All tests passed!
+14:55:37  #12 DONE 24.4s
+14:55:37  
+14:55:37  #13 exporting to image
+14:55:37  #13 exporting layers
+14:55:40  #13 exporting layers 3.0s done
+14:55:40  #13 exporting manifest sha256:a905c971dfc42c9b5fd73b1e68191811a7c49679770d6d87394cc32e983a55e8 0.0s done
+14:55:40  #13 exporting config sha256:27b171d5d15d4d157186a1ae2c13b647d4e5f0bb45d58d91b19a3ea30f834d47 0.0s done
+14:55:40  #13 exporting attestation manifest sha256:27ff658186d94a944967ef56b53a61742f15c23385318c19f0e179fcf56cabb1 0.0s done
+14:55:40  #13 exporting manifest list sha256:4b6e3fa4dbebf3399083996ffa5ddb7cc77339cc6c4f5e0f38ea9c13154cb13b 0.0s done
+14:55:40  #13 naming to moby-dangling@sha256:4b6e3fa4dbebf3399083996ffa5ddb7cc77339cc6c4f5e0f38ea9c13154cb13b
+14:55:40  #13 naming to moby-dangling@sha256:4b6e3fa4dbebf3399083996ffa5ddb7cc77339cc6c4f5e0f38ea9c13154cb13b done
+14:55:40  #13 unpacking to moby-dangling@sha256:4b6e3fa4dbebf3399083996ffa5ddb7cc77339cc6c4f5e0f38ea9c13154cb13b
+14:55:42  #13 unpacking to moby-dangling@sha256:4b6e3fa4dbebf3399083996ffa5ddb7cc77339cc6c4f5e0f38ea9c13154cb13b 1.5s done
+14:55:42  #13 DONE 4.7s
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Docker Image Build)
+[Pipeline] sh
+14:55:42  + docker build -f docker/backend.Dockerfile --label org.opencontainers.image.revision=8d79bfe6349532c5130ffd7feeeaffc5edd0e857 -t assessly-backend:8d79bfe .
+14:55:42  #0 building with "default" instance using docker driver
+14:55:42  
+14:55:42  #1 [internal] load build definition from backend.Dockerfile
+14:55:42  #1 transferring dockerfile: 1.17kB done
+14:55:42  #1 DONE 0.0s
+14:55:42  
+14:55:42  #2 [internal] load metadata for docker.io/library/node:22-alpine
+14:55:44  #2 DONE 1.4s
+14:55:44  
+14:55:44  #3 [deps 1/4] FROM docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
+14:55:44  #3 resolve docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a 0.0s done
+14:55:44  #3 DONE 0.0s
+14:55:44  
+14:55:44  #4 [internal] load build context
+14:55:44  #4 transferring context: 274.01kB 0.0s done
+14:55:44  #4 DONE 0.0s
+14:55:44  
+14:55:44  #5 [deps 2/4] WORKDIR /srv/backend
+14:55:44  #5 CACHED
+14:55:44  
+14:55:44  #6 [deps 3/4] COPY application/backend/package.json application/backend/package-lock.json ./
+14:55:44  #6 DONE 0.2s
+14:55:44  
+14:55:44  #7 [deps 4/4] RUN npm ci --omit=dev
+14:55:47  #7 3.344 
+14:55:47  #7 3.344 added 100 packages, and audited 101 packages in 3s
+14:55:47  #7 3.344 
+14:55:47  #7 3.344 36 packages are looking for funding
+14:55:47  #7 3.344   run `npm fund` for details
+14:55:47  #7 3.344 
+14:55:47  #7 3.344 found 0 vulnerabilities
+14:55:47  #7 3.346 npm notice
+14:55:47  #7 3.346 npm notice New major version of npm available! 10.9.9 -> 12.2.3
+14:55:47  #7 3.346 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3
+14:55:47  #7 3.346 npm notice To update run: npm install -g npm@12.2.3
+14:55:47  #7 3.346 npm notice
+14:55:47  #7 DONE 3.5s
+14:55:48  
+14:55:48  #8 [stage-1 3/6] COPY --from=deps /srv/backend/node_modules ./node_modules
+14:55:48  #8 CACHED
+14:55:48  
+14:55:48  #9 [stage-1 4/6] COPY application/backend/package.json ./
+14:55:48  #9 DONE 0.0s
+14:55:48  
+14:55:48  #10 [stage-1 5/6] COPY application/backend/src ./src
+14:55:48  #10 DONE 0.1s
+14:55:48  
+14:55:48  #11 [stage-1 6/6] COPY application/database/migrations /srv/database/migrations
+14:55:48  #11 DONE 0.0s
+14:55:48  
+14:55:48  #12 exporting to image
+14:55:48  #12 exporting layers
+14:55:48  #12 exporting layers 0.2s done
+14:55:48  #12 exporting manifest sha256:98c1b8bcfa4d4fee439e49c760d112a53eb9cf43cde1cf91448e51ce685dd4df 0.0s done
+14:55:48  #12 exporting config sha256:1c933ed6faccced5ce0f1b64a57502a9b9850b6c285f5fd2c06e0ae4abfbd403 0.0s done
+14:55:48  #12 exporting attestation manifest sha256:b1d29b974c39cc08384b8e8f4de185638002a53a56610e4e8463731b0cb8734c 0.0s done
+14:55:48  #12 exporting manifest list sha256:8857469ac294ce6b53d1ba47d333aec3aa9606ac377d6ae59c55f463da320412 0.0s done
+14:55:48  #12 naming to docker.io/library/assessly-backend:8d79bfe done
+14:55:48  #12 unpacking to docker.io/library/assessly-backend:8d79bfe 0.1s done
+14:55:48  #12 DONE 0.4s
+14:55:48  + docker build -f docker/frontend.Dockerfile --label org.opencontainers.image.revision=8d79bfe6349532c5130ffd7feeeaffc5edd0e857 -t assessly-frontend:8d79bfe .
+14:55:48  #0 building with "default" instance using docker driver
+14:55:48  
+14:55:48  #1 [internal] load build definition from frontend.Dockerfile
+14:55:48  #1 transferring dockerfile: 1.93kB done
+14:55:48  #1 DONE 0.0s
+14:55:48  
+14:55:48  #2 [internal] load metadata for docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+14:55:49  #2 ...
+14:55:49  
+14:55:49  #3 [internal] load metadata for docker.io/library/debian:bookworm-slim
+14:55:49  #3 DONE 0.9s
+14:55:49  
+14:55:49  #2 [internal] load metadata for docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+14:55:50  #2 DONE 1.6s
+14:55:50  
+14:55:50  #4 [flutter 1/4] FROM docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
+14:55:50  #4 resolve docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e 0.0s done
+14:55:50  #4 DONE 0.1s
+14:55:50  
+14:55:50  #5 [internal] load build context
+14:55:50  #5 transferring context: 214.53kB 0.0s done
+14:55:50  #5 DONE 0.0s
+14:55:50  
+14:55:50  #6 [source 3/4] RUN flutter pub get
+14:55:50  #6 CACHED
+14:55:50  
+14:55:50  #7 [flutter 2/4] RUN apt-get update     && apt-get install -y --no-install-recommends git curl unzip xz-utils ca-certificates     && rm -rf /var/lib/apt/lists/*
+14:55:50  #7 CACHED
+14:55:50  
+14:55:50  #8 [flutter 4/4] RUN git config --global --add safe.directory /opt/flutter     && flutter config --no-analytics --enable-web     && flutter precache --web     && flutter --version
+14:55:50  #8 CACHED
+14:55:50  
+14:55:50  #9 [source 1/4] WORKDIR /app
+14:55:50  #9 CACHED
+14:55:50  
+14:55:50  #10 [flutter 3/4] RUN git clone --depth 1 --branch 3.47.8 https://github.com/flutter/flutter.git /opt/flutter
+14:55:50  #10 CACHED
+14:55:50  
+14:55:50  #11 [source 2/4] COPY application/frontend/assessly_flutter/pubspec.yaml application/frontend/assessly_flutter/pubspec.lock ./
+14:55:50  #11 CACHED
+14:55:50  
+14:55:50  #12 [source 4/4] COPY application/frontend/assessly_flutter/ ./
+14:55:50  #12 CACHED
+14:55:50  
+14:55:50  #13 [stage-4 1/3] FROM docker.io/nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
+14:55:50  #13 resolve docker.io/nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0 0.0s done
+14:55:50  #13 CACHED
+14:55:50  
+14:55:50  #14 [stage-4 2/3] COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+14:55:50  #14 DONE 0.1s
+14:55:50  
+14:55:50  #15 [build 1/1] RUN flutter build web --release --dart-define=API_BASE_URL=same-origin
+14:55:50  #15 0.222    Woah! You appear to be trying to run flutter as root.
+14:55:50  #15 0.222    We strongly recommend running the flutter tool without superuser privileges.
+14:55:50  #15 0.222   /
+14:55:50  #15 0.222 📎
+14:55:50  #15 0.392 Resolving dependencies...
+14:55:51  #15 0.432 Downloading packages...
+14:55:51  #15 0.513   cupertino_icons 1.0.9 (2.0.0 available)
+14:55:51  #15 0.513   material_color_utilities 0.13.0 (0.13.1 available)
+14:55:51  #15 0.513   meta 1.18.3 (1.19.0 available)
+14:55:51  #15 0.513   shared_preferences_foundation 2.5.7 (2.6.2 available)
+14:55:51  #15 0.513   test_api 0.7.12 (0.7.15 available)
+14:55:51  #15 0.513   vector_math 2.4.0 (2.4.4 available)
+14:55:51  #15 0.513 Got dependencies!
+14:55:51  #15 0.514 6 packages have newer versions incompatible with dependency constraints.
+14:55:51  #15 0.514 Try `flutter pub outdated` for more information.
+14:56:23  #15 0.806 Compiling lib/main.dart for the Web...                          
+14:56:23  #15 32.60 Wasm dry run succeeded. Consider building and testing your application with the `--wasm` flag. See docs for more info: https://docs.flutter.dev/platform-integration/web/wasm
+14:56:23  #15 32.60 Use --no-wasm-dry-run to disable these warnings.
+14:56:25  #15 34.46 Font asset "CupertinoIcons.ttf" was tree-shaken, reducing it from 257628 to 1472 bytes (99.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+14:56:25  #15 34.46 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 14268 bytes (99.1% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+14:56:25  #15 34.70 Compiling lib/main.dart for the Web...                             33.9s
+14:56:25  #15 34.71 ✓ Built build/web
+14:56:25  #15 DONE 34.7s
+14:56:25  
+14:56:25  #16 [stage-4 3/3] COPY --from=build /app/build/web /usr/share/nginx/html
+14:56:25  #16 DONE 0.3s
+14:56:25  
+14:56:25  #17 exporting to image
+14:56:25  #17 exporting layers
+14:56:27  #17 exporting layers 1.4s done
+14:56:27  #17 exporting manifest sha256:8523ee40e594d56e95ec34a8bad2f31a424324725664bb833163bc4311670afb 0.0s done
+14:56:27  #17 exporting config sha256:925e845b4cc4c352b1e835b1bdffc88d0448438a2c86d764517bbbc7179d5308 0.0s done
+14:56:27  #17 exporting attestation manifest sha256:9e3177cc2ac5a8428a5697b1a15c1b4de4a6ff8d59710d54b2edae57dd073cf6 0.0s done
+14:56:27  #17 exporting manifest list sha256:ee577f68d807edd21ee9ee33c37a40ed9cd3450d44cae2bc3b6b27d917d0678a 0.0s done
+14:56:27  #17 naming to docker.io/library/assessly-frontend:8d79bfe done
+14:56:27  #17 unpacking to docker.io/library/assessly-frontend:8d79bfe
+14:56:27  #17 unpacking to docker.io/library/assessly-frontend:8d79bfe 0.2s done
+14:56:27  #17 DONE 1.7s
+14:56:27  + docker build --label org.opencontainers.image.revision=8d79bfe6349532c5130ffd7feeeaffc5edd0e857 -t assessly-executor:8d79bfe application/execution-service
+14:56:27  #0 building with "default" instance using docker driver
+14:56:27  
+14:56:27  #1 [internal] load build definition from Dockerfile
+14:56:27  #1 transferring dockerfile: 423B done
+14:56:27  #1 DONE 0.0s
+14:56:27  
+14:56:27  #2 [internal] load metadata for docker.io/library/node:22-alpine
+14:56:28  #2 DONE 0.9s
+14:56:28  
+14:56:28  #3 [internal] load .dockerignore
+14:56:28  #3 transferring context: 72B done
+14:56:28  #3 DONE 0.0s
+14:56:28  
+14:56:28  #4 [1/5] FROM docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
+14:56:28  #4 resolve docker.io/library/node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a 0.0s done
+14:56:28  #4 DONE 0.0s
+14:56:28  
+14:56:28  #5 [internal] load build context
+14:56:28  #5 transferring context: 6.60kB 0.0s done
+14:56:28  #5 DONE 0.1s
+14:56:29  
+14:56:29  #6 [2/5] RUN apk add --no-cache python3
+14:56:29  #6 CACHED
+14:56:29  
+14:56:29  #7 [3/5] WORKDIR /app
+14:56:29  #7 CACHED
+14:56:29  
+14:56:29  #8 [4/5] COPY package.json ./
+14:56:29  #8 DONE 0.2s
+14:56:29  
+14:56:29  #9 [5/5] COPY src ./src
+14:56:29  #9 DONE 0.1s
+14:56:29  
+14:56:29  #10 exporting to image
+14:56:29  #10 exporting layers 0.1s done
+14:56:29  #10 exporting manifest sha256:2df39e260fbeb404a307fcac68ec74b257a047f3f6201870a8fa9e37d6161dfc 0.0s done
+14:56:29  #10 exporting config sha256:f9c01cd30e1e72694e8af12ad692031bb2fbe9f5dfb75a8b2955a57fbea2fe2b 0.0s done
+14:56:29  #10 exporting attestation manifest sha256:7ae20d041748f2c288eb5e5ab98123e85877a4207938ab7c75d8a10529c7257f 0.0s done
+14:56:29  #10 exporting manifest list sha256:032477306bc28bad60596ded305290c5a43f865fa6944f28779748f9565216ff 0.0s done
+14:56:29  #10 naming to docker.io/library/assessly-executor:8d79bfe done
+14:56:29  #10 unpacking to docker.io/library/assessly-executor:8d79bfe 0.0s done
+14:56:29  #10 DONE 0.3s
+14:56:29  + docker images --filter reference=assessly-*:8d79bfe
+14:56:29  IMAGE                       ID             DISK USAGE   CONTENT SIZE   EXTRA
+14:56:29  assessly-backend:8d79bfe    8857469ac294        259MB         63.7MB        
+14:56:29  assessly-executor:8d79bfe   032477306bc2        297MB         76.3MB        
+14:56:29  assessly-frontend:8d79bfe   ee577f68d807        130MB         35.2MB        
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Container Smoke Test)
+[Pipeline] sh
+14:56:29  + docker run -d --name ci-backend-1 --network assessly-ci-1 --network-alias backend -e PORT=3000 -e DATABASE_URL -e JWT_SECRET assessly-backend:8d79bfe
+14:56:29  4333f101c939c84f5671b5fe83fe2ec35656ad7554d700e7961211ed1cc7fe23
+14:56:30  + wait_healthy ci-backend-1
+14:56:30  + seq 1 40
+14:56:30  + docker inspect -f {{.State.Health.Status}} ci-backend-1
+14:56:30  + s=starting
+14:56:30  + [ starting = healthy ]
+14:56:30  + sleep 3
+14:56:33  + docker inspect -f {{.State.Health.Status}} ci-backend-1
+14:56:33  + s=starting
+14:56:33  + [ starting = healthy ]
+14:56:33  + sleep 3
+14:56:36  + docker inspect -f {{.State.Health.Status}} ci-backend-1
+14:56:36  + s=healthy
+14:56:36  + [ healthy = healthy ]
+14:56:36  + return 0
+14:56:36  + docker run -d --name ci-frontend-1 --network assessly-ci-1 assessly-frontend:8d79bfe
+14:56:36  ede0b20c3708bf8450834e4e5f9040eaa0e6876156aaae72d33205652bebdaf7
+14:56:36  + wait_healthy ci-frontend-1
+14:56:36  + seq 1 40
+14:56:36  + docker inspect -f {{.State.Health.Status}} ci-frontend-1
+14:56:36  + s=starting
+14:56:36  + [ starting = healthy ]
+14:56:36  + sleep 3
+14:56:39  + docker inspect -f {{.State.Health.Status}} ci-frontend-1
+14:56:39  + s=starting
+14:56:39  + [ starting = healthy ]
+14:56:39  + sleep 3
+14:56:43  + docker inspect -f {{.State.Health.Status}} ci-frontend-1
+14:56:43  + s=healthy
+14:56:43  + [ healthy = healthy ]
+14:56:43  + return 0
+14:56:43  + echo Smoke test passed: backend and frontend images start and report healthy.
+14:56:43  Smoke test passed: backend and frontend images start and report healthy.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Docker Hub Push)
+Stage "Docker Hub Push" skipped due to when conditional
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Pipeline Report)
+[Pipeline] sh
+14:56:44  + echo Assessly CI report
+14:56:44  + echo Build:      1
+14:56:44  + echo Commit:     8d79bfe6349532c5130ffd7feeeaffc5edd0e857
+14:56:44  + echo Image tag:  8d79bfe
+14:56:44  + echo Pushed:     
+14:56:44  + echo Images:
+14:56:44  + docker images --filter reference=assessly-*:8d79bfe --format   {{.Repository}}:{{.Tag}}  {{.Size}}
+14:56:44  + cat reports/pipeline-summary.txt
+14:56:44  Assessly CI report
+14:56:44  Build:      1
+14:56:44  Commit:     8d79bfe6349532c5130ffd7feeeaffc5edd0e857
+14:56:44  Image tag:  8d79bfe
+14:56:44  Pushed:     
+14:56:44  Images:
+14:56:44  assessly-executor:8d79bfe  297MB
+14:56:44  assessly-frontend:8d79bfe  130MB
+14:56:44  assessly-backend:8d79bfe  259MB
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] sh
+14:56:44  + docker rm -f ci-frontend-1 ci-backend-1 assessly-ci-pg-1
+14:56:44  + hostname
+14:56:44  + docker network disconnect assessly-ci-1 155d138eb3b6
+14:56:45  + docker network rm assessly-ci-1
+[Pipeline] archiveArtifacts
+14:56:45  Archiving artifacts
+[Pipeline] echo
+14:56:45  Pipeline OK: commit 8d79bfe tested and built.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timeout
+[Pipeline] }
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
