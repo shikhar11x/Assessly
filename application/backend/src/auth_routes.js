@@ -73,4 +73,27 @@ router.get('/me', authenticate, async (req, res, next) => {
   } catch (err) { return next(err); }
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(100),
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', authenticate, async (req, res, next) => {
+  try {
+    const p = changePasswordSchema.safeParse(req.body);
+    if (!p.success) return res.status(400).json({ error: 'Invalid input', details: p.error.issues });
+    const u = (await db.query('SELECT * FROM users WHERE id = $1', [req.user.id])).rows[0];
+    if (!u || !(await bcrypt.compare(p.data.currentPassword, u.password_hash))) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    if (p.data.currentPassword === p.data.newPassword) {
+      return res.status(400).json({ error: 'New password must be different from the current one' });
+    }
+    const hash = await bcrypt.hash(p.data.newPassword, 10);
+    await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, u.id]);
+    return res.json({ changed: true });
+  } catch (err) { return next(err); }
+});
+
 module.exports = router;
