@@ -33,6 +33,9 @@ class ApiClient {
   Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) =>
       _send(() => _http.put(_uri(path), headers: _headers, body: jsonEncode(body)));
 
+  Future<Map<String, dynamic>> delete(String path) =>
+      _send(() => _http.delete(_uri(path), headers: _headers));
+
   Future<Map<String, dynamic>> _send(Future<http.Response> Function() call) async {
     final http.Response res;
     try {
