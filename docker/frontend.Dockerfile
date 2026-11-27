@@ -1,7 +1,7 @@
 # Frontend image: Flutter web build, then served by unprivileged nginx (non-root, port 8080).
 # Build context is the repository root:  docker build -f docker/frontend.Dockerfile .
 # Flutter is cloned at the exact tag used in development, so builds are reproducible.
-FROM debian:bookworm-slim AS build
+FROM debian:bookworm-slim AS flutter
 ARG FLUTTER_VERSION=3.47.8
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git curl unzip xz-utils ca-certificates \
@@ -13,10 +13,17 @@ RUN git config --global --add safe.directory /opt/flutter \
     && flutter precache --web \
     && flutter --version
 
+FROM flutter AS source
 WORKDIR /app
 COPY application/frontend/assessly_flutter/pubspec.yaml application/frontend/assessly_flutter/pubspec.lock ./
 RUN flutter pub get
 COPY application/frontend/assessly_flutter/ ./
+
+# CI quality gate:  docker build --target test -f docker/frontend.Dockerfile .
+FROM source AS test
+RUN flutter analyze && flutter test
+
+FROM source AS build
 # "same-origin" makes the app call /api on whichever host served it (nginx proxies it to the backend)
 ARG API_BASE_URL=same-origin
 RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
