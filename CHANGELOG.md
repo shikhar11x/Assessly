@@ -30,3 +30,5 @@
 - Phase 2f-3: exam screen (server-based countdown, question palette, mark for review,
   autosave, auto-submit, tab-switch warning, score screen); light/dark theme with
   persistent toggle; dashboard redesign. Coding editor follows in 2f-4.
+- Phase 2f-4: code editor with Run (sample) and Submit (all cases) verdicts, code autosave,
+  detailed result page reachable from the exam and the dashboard.
