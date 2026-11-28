@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:assessly_flutter/core/api_client.dart';
+import 'package:assessly_flutter/core/theme.dart';
 import 'package:assessly_flutter/features/auth/auth_state.dart';
 import 'package:assessly_flutter/features/teacher/assessment_page.dart';
 import 'package:assessly_flutter/features/teacher/teacher_home.dart';
@@ -32,7 +33,7 @@ Widget _wrap(MockClient c, Widget home) {
       Provider<ApiClient>.value(value: api),
       ChangeNotifierProvider<AuthState>.value(value: auth),
     ],
-    child: MaterialApp(home: home),
+    child: MaterialApp(theme: AppTheme.light(), home: home),
   );
 }
 
