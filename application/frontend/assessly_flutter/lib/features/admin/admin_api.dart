@@ -27,6 +27,15 @@ class AdminApi {
   Future<void> unenroll(String batchId, String studentId) =>
       api.delete('/api/admin/batches/$batchId/students/$studentId');
 
+  Future<Map<String, dynamic>> students(String q) =>
+      api.get('/api/admin/students?q=${Uri.encodeQueryComponent(q)}&limit=100');
+  Future<Map<String, dynamic>> enroll(String batchId, List<String> ids) =>
+      api.post('/api/admin/batches/$batchId/enroll', {'studentIds': ids});
+  Future<Map<String, dynamic>> assignBatch(String assessmentId, String batchId) =>
+      api.post('/api/admin/assessments/$assessmentId/assign-batch', {'batchId': batchId});
+  Future<void> setAttendance(String studentId, double pct) =>
+      api.put('/api/teacher/students/$studentId/attendance', {'attendancePct': pct});
+
   Future<Map<String, dynamic>> addFaculty(Map<String, dynamic> body) => api.post('/api/admin/faculty', body);
   Future<Map<String, dynamic>> users(String role) => api.get('/api/admin/users?role=$role&limit=100');
 }

@@ -234,4 +234,37 @@ router.post('/faculty', guard(async (req, res) => {
   res.status(201).json({ id: r.rows[0].id, temporaryPassword: temp });
 }));
 
+// GET /api/admin/students?q=&limit=&offset= - search by name, email or roll number
+router.get('/students', guard(async (req, res) => {
+  const term = `%${String(req.query.q || '').trim().replace(/[%_\\]/g, '\\$&')}%`;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+  const r = await query(
+    `SELECT u.id, u.full_name, u.email, u.roll_number, u.attendance_pct, count(*) OVER()::int AS total,
+            (SELECT count(*)::int FROM enrollments e WHERE e.student_id = u.id) AS batch_count
+     FROM users u
+     WHERE u.role = 'student' AND (u.full_name ILIKE $1 OR u.email ILIKE $1 OR COALESCE(u.roll_number, '') ILIKE $1)
+     ORDER BY u.roll_number NULLS LAST, u.email LIMIT $2 OFFSET $3`, [term, limit, offset]);
+  res.json({
+    total: r.rows.length ? r.rows[0].total : 0,
+    students: r.rows.map((s) => ({
+      id: s.id, fullName: s.full_name, email: s.email, rollNumber: s.roll_number,
+      attendancePct: Number(s.attendance_pct), batchCount: s.batch_count,
+    })),
+  });
+}));
+
+// POST /api/admin/assessments/:id/assign-batch - body { batchId }: assigns every enrolled student
+router.post('/assessments/:id/assign-batch', guard(async (req, res) => {
+  const { batchId } = parse(z.object({ batchId: z.string().uuid() }), req.body);
+  const a = await query('SELECT 1 FROM assessments WHERE id = $1', [req.params.id]);
+  if (!a.rows[0]) throw new HttpError(404, 'Assessment not found');
+  const b = await query('SELECT 1 FROM batches WHERE id = $1', [batchId]);
+  if (!b.rows[0]) throw new HttpError(404, 'Batch not found');
+  const r = await query(
+    `INSERT INTO assignments (assessment_id, student_id)
+     SELECT $1, e.student_id FROM enrollments e WHERE e.batch_id = $2 ON CONFLICT DO NOTHING`, [req.params.id, batchId]);
+  res.json({ assigned: r.rowCount });
+}));
+
 module.exports = router;

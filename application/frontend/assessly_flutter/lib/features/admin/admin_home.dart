@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../core/widgets/app_widgets.dart';
 import '../auth/auth_state.dart';
 import 'admin_api.dart';
+import 'admin_people.dart';
 
 void _snack(BuildContext c, String m) => ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(m)));
 
@@ -49,7 +50,7 @@ class _AdminHomeState extends State<AdminHome> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
     return DefaultTabController(
-      length: 5,
+      length: 7,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin'),
@@ -64,6 +65,8 @@ class _AdminHomeState extends State<AdminHome> {
             Tab(text: 'Courses'),
             Tab(text: 'Batches'),
             Tab(text: 'Faculty'),
+            Tab(text: 'Students'),
+            Tab(text: 'Assessments'),
           ]),
         ),
         body: TabBarView(children: [
@@ -72,6 +75,8 @@ class _AdminHomeState extends State<AdminHome> {
           _Courses(api: _api),
           _Batches(api: _api),
           _Faculty(api: _api),
+          AdminStudentsTab(api: _api),
+          AdminAssessmentsTab(api: _api),
         ]),
       ),
     );

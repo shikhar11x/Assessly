@@ -11,7 +11,7 @@ const { toCsv } = require('./csv_export');
 const { questionSchemaV2, toRow } = require('./question_schema');
 
 const router = express.Router();
-router.use(authenticate, requireRole('teacher'));
+router.use(authenticate, requireRole('teacher', 'admin'));
 
 class HttpError extends Error {
   constructor(status, message, extra = {}) {
@@ -40,7 +40,7 @@ const parseBody = (schema, body) => {
 /** Loads an assessment only if it belongs to the calling teacher. */
 async function ownAssessment(id, teacherId, client = null) {
   const q = client ? client.query.bind(client) : query;
-  const r = await q('SELECT * FROM assessments WHERE id = $1 AND teacher_id = $2', [id, teacherId]);
+  const r = await q('SELECT * FROM assessments WHERE id = $1 AND (teacher_id = $2 OR EXISTS (SELECT 1 FROM users WHERE id = $2 AND role = \'admin\'))', [id, teacherId]);
   if (!r.rows[0]) throw new HttpError(404, 'Assessment not found');
   return r.rows[0];
 }
@@ -85,7 +85,7 @@ router.get('/assessments', handle(async (req, res) => {
     `SELECT a.*, (SELECT count(*)::int FROM questions q WHERE q.assessment_id = a.id) AS question_count,
             (SELECT count(*)::int FROM assignments s WHERE s.assessment_id = a.id) AS assigned_count,
             (SELECT count(*)::int FROM attempts t WHERE t.assessment_id = a.id AND t.status <> 'in_progress') AS submitted_count
-     FROM assessments a WHERE a.teacher_id = $1 ORDER BY a.created_at DESC`, [req.user.id]);
+     FROM assessments a WHERE (a.teacher_id = $1 OR EXISTS (SELECT 1 FROM users u WHERE u.id = $1 AND u.role = 'admin')) ORDER BY a.created_at DESC`, [req.user.id]);
   res.json({
     assessments: r.rows.map((a) => ({
       ...assessmentView(a), questionCount: a.question_count,

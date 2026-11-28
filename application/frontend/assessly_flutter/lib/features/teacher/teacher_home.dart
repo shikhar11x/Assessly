@@ -30,7 +30,7 @@ class _TeacherHomeState extends State<TeacherHome> {
 
   Future<void> _create() async {
     final body = await showDialog<Map<String, dynamic>>(
-        context: context, builder: (_) => const _NewAssessmentDialog());
+        context: context, builder: (_) => const NewAssessmentDialog());
     if (body == null) return;
     try {
       await _api.createAssessment(body);
@@ -213,13 +213,13 @@ class _AssessmentCard extends StatelessWidget {
   }
 }
 
-class _NewAssessmentDialog extends StatefulWidget {
-  const _NewAssessmentDialog();
+class NewAssessmentDialog extends StatefulWidget {
+  const NewAssessmentDialog({super.key});
   @override
-  State<_NewAssessmentDialog> createState() => _NewAssessmentDialogState();
+  State<NewAssessmentDialog> createState() => NewAssessmentDialogState();
 }
 
-class _NewAssessmentDialogState extends State<_NewAssessmentDialog> {
+class NewAssessmentDialogState extends State<NewAssessmentDialog> {
   final _title = TextEditingController();
   final _desc = TextEditingController();
   final _duration = TextEditingController(text: '30');
