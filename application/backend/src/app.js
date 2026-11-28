@@ -9,6 +9,7 @@ const authRoutes = require('./auth_routes');
 const studentRoutes = require('./student_routes');
 const codingRoutes = require('./coding_routes');
 const teacherRoutes = require('./teacher_routes');
+const adminRoutes = require('./admin_routes');
 
 /**
  * Builds and returns the Express application.
@@ -25,6 +26,7 @@ function createApp() {
 app.use('/api/student', studentRoutes);
 app.use('/api/student', codingRoutes);
 app.use('/api/teacher', teacherRoutes);
+app.use('/api/admin', adminRoutes);
 
   // Liveness endpoint: "is the process alive?" (used later by Kubernetes probes)
   app.get('/health', (req, res) => {
