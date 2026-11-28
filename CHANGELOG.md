@@ -51,3 +51,5 @@
 
 - Phase 2g-3 (backend): admin role, departments, courses, batches, enrollment, bulk CSV batch import, faculty creation, platform stats.
 
+- Phase 2g-3b: admin UI (overview, departments, courses, batches with CSV import, faculty) and admin routing.
+
