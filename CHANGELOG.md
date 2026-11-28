@@ -55,3 +55,5 @@
 
 - Phase 2g-4a: migrations for new question types, negative marking and instructions; grading logic with unit tests.
 
+- Phase 2g-4b: teacher can create all question types and negative marking/instructions; student answers and final grading for msq, true/false, fill-blank, numeric; short/long left for manual grading.
+
