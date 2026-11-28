@@ -53,3 +53,5 @@
 
 - Phase 2g-3b: admin UI (overview, departments, courses, batches with CSV import, faculty) and admin routing.
 
+- Phase 2g-4a: migrations for new question types, negative marking and instructions; grading logic with unit tests.
+
