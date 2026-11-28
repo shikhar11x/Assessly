@@ -202,16 +202,28 @@ class _LoginPageState extends State<LoginPage> {
                             alignment: WrapAlignment.center,
                             spacing: 8,
                             children: [
-                              ActionChip(
-                                avatar: const Icon(Icons.co_present_outlined, size: 18),
-                                label: const Text('Teacher'),
-                                onPressed: () => _fillDemo('teacher@assessly.local'),
-                              ),
-                              ActionChip(
-                                avatar: const Icon(Icons.person_outline, size: 18),
-                                label: const Text('Student'),
-                                onPressed: () => _fillDemo('asha@assessly.local'),
-                              ),
+                              for (final d in const [
+                                (
+                                  'Teacher',
+                                  Icons.co_present_outlined,
+                                  'teacher@assessly.local',
+                                ),
+                                (
+                                  'Student',
+                                  Icons.person_outline,
+                                  'asha@assessly.local',
+                                ),
+                                (
+                                  'Admin',
+                                  Icons.admin_panel_settings_outlined,
+                                  'admin@assessly.local',
+                                ),
+                              ])
+                                ActionChip(
+                                  avatar: Icon(d.$2, size: 18),
+                                  label: Text(d.$1),
+                                  onPressed: () => _fillDemo(d.$3),
+                                ),
                             ],
                           ),
                         ],

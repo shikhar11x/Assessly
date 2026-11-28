@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/api_client.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_state.dart';
+import 'features/admin/admin_home.dart';
 import 'features/auth/login_page.dart';
 import 'features/student/student_home.dart';
 import 'features/teacher/teacher_home.dart';
@@ -63,6 +64,13 @@ class _Gate extends StatelessWidget {
     final auth = context.watch<AuthState>();
     if (!auth.ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (!auth.signedIn) return const LoginPage();
-    return auth.user!.role == 'teacher' ? const TeacherHome() : const StudentHome();
+    switch (auth.user!.role) {
+      case 'admin':
+        return const AdminHome();
+      case 'teacher':
+        return const TeacherHome();
+      default:
+        return const StudentHome();
+    }
   }
 }
