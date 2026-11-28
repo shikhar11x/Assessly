@@ -8,6 +8,7 @@ const { authenticate, requireRole } = require('./middleware_auth');
 const { parseStudentCsv } = require('./csv_import');
 const { summarizeScores } = require('./analytics');
 const { toCsv } = require('./csv_export');
+const { questionSchemaV2, toRow } = require('./question_schema');
 
 const router = express.Router();
 router.use(authenticate, requireRole('teacher'));
@@ -53,6 +54,7 @@ const assessmentView = (a) => ({
   id: a.id, title: a.title, description: a.description, durationMinutes: a.duration_minutes,
   questionsPerAttempt: a.questions_per_attempt, minAttendancePct: Number(a.min_attendance_pct),
   isPublished: a.is_published, createdAt: a.created_at,
+  negativeMarking: Number(a.negative_marking || 0), instructions: a.instructions || '', shuffleOptions: !!a.shuffle_options,
 });
 
 // ---------- Assessments ----------
@@ -62,6 +64,9 @@ const assessmentSchema = z.object({
   durationMinutes: z.number().int().min(1).max(600),
   questionsPerAttempt: z.number().int().min(1).max(100).default(5),
   minAttendancePct: z.number().min(0).max(100).default(0),
+  negativeMarking: z.number().min(0).max(100).default(0),
+  instructions: z.string().max(10000).default(''),
+  shuffleOptions: z.boolean().default(false),
 });
 
 router.post('/assessments', handle(async (req, res) => {
@@ -70,6 +75,8 @@ router.post('/assessments', handle(async (req, res) => {
     `INSERT INTO assessments (teacher_id, title, description, duration_minutes, questions_per_attempt, min_attendance_pct)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
     [req.user.id, d.title, d.description, d.durationMinutes, d.questionsPerAttempt, d.minAttendancePct]);
+  await query('UPDATE assessments SET negative_marking=$1, instructions=$2, shuffle_options=$3 WHERE id=$4', [d.negativeMarking, d.instructions, d.shuffleOptions, r.rows[0].id]);
+  Object.assign(r.rows[0], { negative_marking: d.negativeMarking, instructions: d.instructions, shuffle_options: d.shuffleOptions });
   res.status(201).json({ assessment: assessmentView(r.rows[0]) });
 }));
 
@@ -99,6 +106,8 @@ router.put('/assessments/:id', handle(async (req, res) => {
     `UPDATE assessments SET title=$1, description=$2, duration_minutes=$3, questions_per_attempt=$4, min_attendance_pct=$5
      WHERE id=$6 RETURNING *`,
     [d.title, d.description, d.durationMinutes, d.questionsPerAttempt, d.minAttendancePct, req.params.id]);
+  await query('UPDATE assessments SET negative_marking=$1, instructions=$2, shuffle_options=$3 WHERE id=$4', [d.negativeMarking, d.instructions, d.shuffleOptions, r.rows[0].id]);
+  Object.assign(r.rows[0], { negative_marking: d.negativeMarking, instructions: d.instructions, shuffle_options: d.shuffleOptions });
   res.json({ assessment: assessmentView(r.rows[0]) });
 }));
 
@@ -146,6 +155,31 @@ const questionSchema = z.discriminatedUnion('type', [
     })).min(1).max(20),
   }),
 ]);
+
+async function saveQuestionV2(client, assessmentId, d, questionId = null) {
+  const r = toRow(d);
+  const vals = [r.type, r.prompt, r.options, r.correct_option, r.correct_options, r.correct_text,
+    r.correct_number, r.tolerance, r.marks, r.starter_code, r.explanation];
+  let id = questionId;
+  if (id) {
+    await client.query(
+      `UPDATE questions SET type=$1, prompt=$2, options=$3, correct_option=$4, correct_options=$5, correct_text=$6,
+         correct_number=$7, tolerance=$8, marks=$9, starter_code=$10, explanation=$11 WHERE id=$12`, [...vals, id]);
+    await client.query('DELETE FROM test_cases WHERE question_id = $1', [id]);
+  } else {
+    id = (await client.query(
+      `INSERT INTO questions (assessment_id, type, prompt, options, correct_option, correct_options, correct_text,
+         correct_number, tolerance, marks, starter_code, explanation)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`, [assessmentId, ...vals])).rows[0].id;
+  }
+  if (d.type === 'coding') {
+    for (const tc of d.testCases) {
+      await client.query('INSERT INTO test_cases (question_id, input, expected_output, is_sample) VALUES ($1,$2,$3,$4)',
+        [id, tc.input, tc.expectedOutput, tc.isSample]);
+    }
+  }
+  return id;
+}
 
 async function saveQuestion(client, assessmentId, d, questionId = null) {
   let id = questionId;
@@ -195,6 +229,7 @@ router.get('/assessments/:id/questions', handle(async (req, res) => {
   res.json({
     questions: qs.map((q) => ({
       id: q.id, type: q.type, prompt: q.prompt, options: q.options, correctOption: q.correct_option,
+      correctOptions: q.correct_options, correctText: q.correct_text, correctNumber: q.correct_number === null ? null : Number(q.correct_number), tolerance: Number(q.tolerance), explanation: q.explanation,
       marks: q.marks, starterCode: q.starter_code,
       testCases: tcs.filter((t) => t.question_id === q.id)
         .map((t) => ({ id: t.id, input: t.input, expectedOutput: t.expected_output, isSample: t.is_sample })),
@@ -205,18 +240,18 @@ router.get('/assessments/:id/questions', handle(async (req, res) => {
 router.post('/assessments/:id/questions', handle(async (req, res) => {
   await ownAssessment(req.params.id, req.user.id);
   if (await hasAttempts(req.params.id)) throw new HttpError(409, 'Cannot change questions: students have already attempted this assessment');
-  const d = parseBody(questionSchema, req.body);
-  const id = await inTx((c) => saveQuestion(c, req.params.id, d));
+  const d = parseBody(questionSchemaV2, req.body);
+  const id = await inTx((c) => saveQuestionV2(c, req.params.id, d));
   res.status(201).json({ id });
 }));
 
 router.put('/assessments/:id/questions/:qid', handle(async (req, res) => {
   await ownAssessment(req.params.id, req.user.id);
   if (await hasAttempts(req.params.id)) throw new HttpError(409, 'Cannot change questions: students have already attempted this assessment');
-  const d = parseBody(questionSchema, req.body);
+  const d = parseBody(questionSchemaV2, req.body);
   const exists = await query('SELECT 1 FROM questions WHERE id = $1 AND assessment_id = $2', [req.params.qid, req.params.id]);
   if (!exists.rows[0]) throw new HttpError(404, 'Question not found');
-  await inTx((c) => saveQuestion(c, req.params.id, d, req.params.qid));
+  await inTx((c) => saveQuestionV2(c, req.params.id, d, req.params.qid));
   res.json({ id: req.params.qid });
 }));
 

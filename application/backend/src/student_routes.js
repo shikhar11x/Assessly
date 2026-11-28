@@ -5,6 +5,7 @@ const { z } = require('zod');
 const { pool, query } = require('./db');
 const { authenticate, requireRole } = require('./middleware_auth');
 const svc = require('./assessment_service');
+const grading = require('./grading');
 
 const router = express.Router();
 router.use(authenticate, requireRole('student'));
@@ -53,21 +54,23 @@ async function finalizeAttempt(client, attemptId, status) {
   if (attempt.status !== 'in_progress') return attempt;
 
   const questions = (await client.query(
-    'SELECT id, type, marks, correct_option FROM questions WHERE id = ANY($1::uuid[])', [attempt.question_ids])).rows;
+    'SELECT * FROM questions WHERE id = ANY($1::uuid[])', [attempt.question_ids])).rows;
   const answers = (await client.query('SELECT * FROM answers WHERE attempt_id = $1', [attemptId])).rows;
   const byQuestion = new Map(answers.map((a) => [a.question_id, a]));
 
+  const neg = Number((await client.query('SELECT negative_marking FROM assessments WHERE id = $1', [attempt.assessment_id])).rows[0].negative_marking);
   let score = 0;
   let max = 0;
   for (const q of questions) {
     max += q.marks;
-    if (q.type !== 'mcq') {
+    if (['coding', 'short', 'long'].includes(q.type)) {
       const ca = byQuestion.get(q.id);
       if (ca) score += Number(ca.marks_awarded);
       continue;
     }
     const ans = byQuestion.get(q.id);
-    const g = svc.gradeMcq(q, ans ? ans.selected_option : null);
+    const g0 = grading.gradeAnswer(q, ans, neg);
+    const g = { isCorrect: g0.correct, marks: g0.marks };
     score += g.marks;
     if (ans) {
       await client.query(
@@ -77,7 +80,7 @@ async function finalizeAttempt(client, attemptId, status) {
   }
   return (await client.query(
     `UPDATE attempts SET status = $1, submitted_at = now(), score = $2, max_score = $3
-     WHERE id = $4 RETURNING *`, [status, score, max, attemptId])).rows[0];
+     WHERE id = $4 RETURNING *`, [status, grading.floorTotal(score), max, attemptId])).rows[0];
 }
 
 async function getOwnAttempt(attemptId, studentId) {
@@ -133,7 +136,7 @@ async function attemptView(attempt) {
     attempt: summary(attempt),
     questions,
     answers: answers.map((a) => ({
-      questionId: a.question_id, selectedOption: a.selected_option,
+      questionId: a.question_id, selectedOption: a.selected_option, selectedOptions: a.selected_options, textAnswer: a.text_answer,
       code: a.code, markedForReview: a.marked_for_review,
     })),
   };
@@ -212,6 +215,8 @@ router.get('/attempts/:id', handle(async (req, res) => {
 
 const answerSchema = z.object({
   selectedOption: z.number().int().min(0).nullable().optional(),
+  selectedOptions: z.array(z.number().int().min(0)).max(8).nullable().optional(),
+  textAnswer: z.string().max(10000).nullable().optional(),
   code: z.string().max(20000).nullable().optional(),
   markedForReview: z.boolean().optional(),
 });
@@ -232,18 +237,21 @@ router.put('/attempts/:id/answers/:questionId', handle(async (req, res) => {
   }
 
   const q = (await query('SELECT type, options FROM questions WHERE id = $1', [req.params.questionId])).rows[0];
-  const { selectedOption = null, code = null, markedForReview = false } = parsed.data;
-  if (q.type === 'mcq' && selectedOption !== null && selectedOption >= q.options.length) {
+  const { selectedOption = null, selectedOptions = null, textAnswer = null, code = null, markedForReview = false } = parsed.data;
+  if (q.type === 'msq' && selectedOptions && selectedOptions.some((i) => i >= q.options.length)) {
+    throw new HttpError(400, 'selectedOptions is out of range');
+  }
+  if (['mcq', 'truefalse'].includes(q.type) && selectedOption !== null && selectedOption >= q.options.length) {
     throw new HttpError(400, 'selectedOption is out of range');
   }
 
   await query(
-    `INSERT INTO answers (attempt_id, question_id, selected_option, code, marked_for_review, updated_at)
-     VALUES ($1, $2, $3, $4, $5, now())
+    `INSERT INTO answers (attempt_id, question_id, selected_option, code, marked_for_review, selected_options, text_answer, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, now())
      ON CONFLICT (attempt_id, question_id) DO UPDATE SET
-       selected_option = EXCLUDED.selected_option, code = EXCLUDED.code,
+       selected_option = EXCLUDED.selected_option, selected_options = EXCLUDED.selected_options, text_answer = EXCLUDED.text_answer, code = EXCLUDED.code,
        marked_for_review = EXCLUDED.marked_for_review, updated_at = now()`,
-    [attempt.id, req.params.questionId, selectedOption, code, markedForReview]);
+    [attempt.id, req.params.questionId, selectedOption, code, markedForReview, selectedOptions, textAnswer]);
   res.json({ saved: true, remainingSeconds: svc.remainingSeconds(attempt.deadline_at) });
 }));
 
@@ -272,7 +280,7 @@ router.get('/attempts/:id/result', handle(async (req, res) => {
   attempt = await expireIfNeeded(attempt);
   if (attempt.status === 'in_progress') throw new HttpError(409, 'Result is available after submission');
   const qs = (await query(
-    `SELECT id, type, prompt, options, correct_option, marks FROM questions WHERE id = ANY($1::uuid[])`,
+    `SELECT * FROM questions WHERE id = ANY($1::uuid[])`,
     [attempt.question_ids])).rows;
   const answers = (await query('SELECT * FROM answers WHERE attempt_id = $1', [attempt.id])).rows;
   const byAnswer = new Map(answers.map((a) => [a.question_id, a]));
@@ -285,8 +293,9 @@ router.get('/attempts/:id/result', handle(async (req, res) => {
       return {
         questionId: id, type: q.type, prompt: q.prompt, marks: q.marks,
         options: q.options,
-        correctOption: q.type === 'mcq' ? q.correct_option : null,
-        selectedOption: a ? a.selected_option : null,
+        correctOption: ['mcq', 'truefalse'].includes(q.type) ? q.correct_option : null,
+        correctOptions: q.correct_options, correctText: q.correct_text, correctNumber: q.correct_number === null ? null : Number(q.correct_number), explanation: q.explanation,
+        selectedOption: a ? a.selected_option : null, selectedOptions: a ? a.selected_options : null, textAnswer: a ? a.text_answer : null,
         isCorrect: a ? a.is_correct : null,
         marksAwarded: a ? Number(a.marks_awarded) : 0,
         status: q.type === 'coding' ? (a && a.is_correct !== null ? 'graded' : 'no code submitted') : 'graded',
