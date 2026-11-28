@@ -49,3 +49,5 @@
 
 - Phase 2g-2b: reusable widgets, responsive sidebar shell for faculty and student, login and exam on design tokens.
 
+- Phase 2g-3 (backend): admin role, departments, courses, batches, enrollment, bulk CSV batch import, faculty creation, platform stats.
+
